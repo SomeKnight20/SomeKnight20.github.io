@@ -45,13 +45,12 @@ function genCells(){
     }
 }
 genCells();
-
 var tempCells = [...cells];
+
 
 function XYtoLoc(pos){
     return ((pos.x+imgBounds.w)%imgBounds.w) + imgBounds.w*((pos.y+imgBounds.h)%imgBounds.h);
 }
-
 function LocToXY(i){
     return {x:i%(imgBounds.w), y:Math.floor(i/(imgBounds.w))};
 }
