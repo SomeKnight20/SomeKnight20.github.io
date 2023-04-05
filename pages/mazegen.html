@@ -1,0 +1,262 @@
+<style>
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+</style>
+<title>Maze generator</title>
+<script>
+window.onload = function(){
+var canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+document.body.appendChild(canvas);
+
+
+
+var id = 0;
+var cells = [];
+const mazeBounds = {w:31,h:31};
+const cellSize = 10;
+ctx.lineCap = 'square';
+
+function addCell() {
+    var cell = new Object();
+    cell["id"] = id;
+    cell["matrix"] = [1,1,1,1];//UP,RIGHT,DOWN,LEFT     1=wall, 0=no wall
+    cell["offset"] = {x:(id%mazeBounds.w)*cellSize,y:(Math.floor(id/mazeBounds.w))*cellSize};
+    cell["draw"] = function(i2){
+        if(this.matrix[0] && this.matrix[1] && this.matrix[2] && this.matrix[3]){
+            ctx.fillRect(this.offset.x,this.offset.y,cellSize,cellSize);
+        }else{
+            if(this.matrix[0]){
+                ctx.moveTo(this.offset.x+0, this.offset.y+0);
+                ctx.lineTo(this.offset.x+cellSize, this.offset.y+0);
+            }
+            if(this.matrix[1]){
+                ctx.moveTo(this.offset.x+cellSize, this.offset.y+0);
+                ctx.lineTo(this.offset.x+cellSize, this.offset.y+cellSize);
+            }
+            if(this.matrix[2]){
+                ctx.moveTo(this.offset.x+cellSize, this.offset.y+cellSize);
+                ctx.lineTo(this.offset.x+0, this.offset.y+cellSize);
+            }
+            if(this.matrix[3]){
+                ctx.moveTo(this.offset.x+0, this.offset.y+cellSize);
+                ctx.lineTo(this.offset.x+0, this.offset.y+0);
+            }
+        }
+    };
+    cells.push(cell);
+    id++
+}
+for (var i = 0; i < mazeBounds.w*mazeBounds.h; i++) {
+    addCell();
+}
+
+
+
+
+function XYtoMazeLocation(pos){
+    return pos.x + mazeBounds.w*pos.y;
+}
+function MazeMatrixConv(dir){
+    b = dir.x != 0 && dir.x > 0;//RIGHT
+    d = dir.x != 0 && dir.x < 0;//LEFT
+    a = dir.y != 0 && dir.y < 0;//UP
+    c = dir.y != 0 && dir.y > 0;//DOWN
+    return [!a,!b,!c,!d];
+}
+function MergeMatrices(cellMatrix, matrix){
+    for (var i=0; i < cellMatrix.length; i++){
+        if(cellMatrix[i] == 1){
+            cellMatrix[i] = matrix[i];
+        }
+    }
+    return cellMatrix;
+}
+function mazeWalker(){
+    console.log("starting");
+    const MOVEMENT = {UP:{x:0,y:-1},DOWN:{x:0,y:1},LEFT:{x:-1,y:0},RIGHT:{x:1,y:0}};
+    const DICESIDES = [MOVEMENT.DOWN,MOVEMENT.RIGHT,MOVEMENT.UP,MOVEMENT.LEFT];
+    walkerPos = {x:0,y:0};
+    walkerOldPos = walkerPos;
+    walkPoints = [];
+    failedRolls = 0;
+    failedLoop = 0;
+    sanity = true;
+    done = false;
+    iteration = 0;
+    backpedals = 0;
+    branches = 0;
+
+    // startPos = walkerPos;
+    function rollDice(){
+        if(failedRolls < 100){
+            failedRolls++
+            // return Math.floor(iteration/mazeBounds.w)%5;
+            // return iteration%5;
+            // return failedRolls%5;
+            // return Math.round(Math.random()*4);
+            availablePaths = [];
+            for (var i=0; i < DICESIDES.length; i++){
+                if(checks(DICESIDES[i])){
+                    availablePaths.push(i+1);
+                }
+            }
+            return availablePaths[Math.floor(Math.random() * availablePaths.length)]
+        }else{
+            sanity = false;
+            console.log("Too many failed rolls");
+        }
+    }
+    function reverseDir(dir){
+        return {x:-dir.x,y:-dir.y}
+    }
+    function moveWalker(dir){
+        walkerOldPos = {x:walkerPos.x, y:walkerPos.y}
+        walkerPos = {x:walkerPos.x+dir.x, y:walkerPos.y+dir.y}
+
+        cells[XYtoMazeLocation(walkerOldPos)].matrix = MergeMatrices(cells[XYtoMazeLocation(walkerOldPos)].matrix, MazeMatrixConv(dir));
+        cells[XYtoMazeLocation(walkerPos)].matrix = MergeMatrices(cells[XYtoMazeLocation(walkerPos)].matrix, MazeMatrixConv(reverseDir(dir)));
+    }
+    function checkIfOOB(){
+        if(walkerPos.x < 0 || walkerPos.x > mazeBounds.w-1){
+            return true
+        }else if(walkerPos.y < 0 || walkerPos.y > mazeBounds.h-1){
+            return true
+        }
+        return false
+    }
+    function checkIfWillBeOOB(dir){
+        if(walkerPos.x+dir.x < 0 || walkerPos.x+dir.x > mazeBounds.w-1){
+            return true
+        }else if(walkerPos.y+dir.y < 0 || walkerPos.y+dir.y > mazeBounds.h-1){
+            return true
+        }
+        return false
+    }
+    function checkIfPathExists(dir){
+        tempPos = {x:walkerPos.x+dir.x,y:walkerPos.y+dir.y}
+        if(walkPoints.find(e => e.x == tempPos.x && e.y == tempPos.y)){
+            return true
+        }
+        return false
+    }
+    function checkIfCanMove(){
+        if(
+            (walkPoints.find(e => e.x == walkerPos.x+1 && e.y == walkerPos.y) || checkIfWillBeOOB(MOVEMENT.RIGHT)) &&
+            (walkPoints.find(e => e.x == walkerPos.x-1 && e.y == walkerPos.y) || checkIfWillBeOOB(MOVEMENT.LEFT)) &&
+            (walkPoints.find(e => e.x == walkerPos.x && e.y == walkerPos.y+1) || checkIfWillBeOOB(MOVEMENT.DOWN)) &&
+            (walkPoints.find(e => e.x == walkerPos.x && e.y == walkerPos.y-1) || checkIfWillBeOOB(MOVEMENT.UP))
+        ){
+            return false
+        }
+        return true
+    }
+    function checks(dir){
+        return !checkIfWillBeOOB(dir) && !checkIfPathExists(dir);
+    }
+    function backpedal(){
+        // if(backpedals > walkPoints.length-1){
+        //     console.log("backpedal limit reached", branches);
+        //     sanity = false;
+        // }
+        walkerOldPos = walkerPos;
+        // walkerPos = walkPoints[walkPoints.length-1-backpedals];
+        // backpedals++;
+        walkerPos = walkPoints.find(e => e.x == walkerOldPos.x && e.y == walkerOldPos.y).prevPos;
+        // walkerPos = walkPoints[Math.floor(Math.random() * walkPoints.length)];//picks random valid path to branch from. also breaks the visuals for the walker, but is 10x faster
+    }
+    function savePos(){
+        var point = new Object();
+        point["x"] = walkerPos.x;
+        point["y"] = walkerPos.y;
+        point["prevPos"] = walkerOldPos;
+        if(backpedals == 0){
+            point["jump"] = false;
+        }else{
+            point["jump"] = true;
+            branches++;
+        }
+        walkPoints.push(point);
+        failedRolls = 0;
+        failedLoop = 0;
+        backpedals = 0;
+    }
+    savePos();
+    while(sanity && !done){
+        failedLoop++;
+        if(failedLoop > 10*mazeBounds.w*mazeBounds.h){
+            sanity = false;
+            console.log("Loop sanity check");
+        }
+        if(iteration > 1000000){
+            sanity = false;
+            console.log("Too many loops");
+        }
+        if(walkPoints.length >= mazeBounds.w*mazeBounds.h){
+            sanity = false;
+            console.log("Path limit reached", walkPoints.length);
+        }
+        if(checkIfCanMove()){
+            switch(rollDice()){
+                case 1:
+                if(checks(MOVEMENT.DOWN)){
+                    moveWalker(MOVEMENT.DOWN);
+                    savePos();
+                }
+                break
+                case 2:
+                if(checks(MOVEMENT.RIGHT)){
+                    moveWalker(MOVEMENT.RIGHT);
+                    savePos();
+                }
+                break
+                case 3:
+                if(checks(MOVEMENT.UP)){
+                    moveWalker(MOVEMENT.UP);
+                    savePos();
+                }
+                break
+                case 4:
+                if(checks(MOVEMENT.LEFT)){
+                    moveWalker(MOVEMENT.LEFT);
+                    savePos();
+                }
+                break
+            }
+        }else{
+            // sanity = false;
+            // console.log("Hit dead end");
+            backpedal();
+        }
+        
+        iteration++;
+    }
+    console.log("done");
+    console.log("it took", iteration, "loops. excepted", (mazeBounds.w*mazeBounds.h)*2, "loops");
+}
+mazeWalker();
+
+
+
+
+function drawCanvas(){
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'black';
+    ctx.beginPath();
+    for (var i=0; i < cells.length; i++){
+        cells[i].draw(i);
+    }
+    ctx.stroke();
+
+    ctx.textBaseline = "top";
+    ctx.textAlign = "left";
+    ctx.fillText(mazeBounds.w+"x"+mazeBounds.h, 0, mazeBounds.h*cellSize);
+}
+drawCanvas();
+}
+</script>

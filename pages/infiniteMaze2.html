@@ -1,0 +1,210 @@
+<style>
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+</style>
+<title>Infinite maze</title>
+<script>
+window.onload = function(){
+var canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+document.body.appendChild(canvas);
+
+ctx.translate(canvas.width/2, canvas.height/2);
+
+document.addEventListener('keydown', function(e){
+    // console.log(event.keyCode);
+    if(event.keyCode === 38){//UP//arrow keys
+        moveWalker(MOVEMENT.UP);
+    }
+    if(event.keyCode === 40){//DOWN
+        moveWalker(MOVEMENT.DOWN);
+    }
+    if(event.keyCode === 37){//LEFT
+        moveWalker(MOVEMENT.LEFT);
+    }
+    if(event.keyCode === 39){//RIGHT
+        moveWalker(MOVEMENT.RIGHT);
+    }
+
+    if(event.keyCode === 87){//UP//wasd
+        moveWalker(MOVEMENT.UP);
+    }
+    if(event.keyCode === 83){//DOWN
+        moveWalker(MOVEMENT.DOWN);
+    }
+    if(event.keyCode === 65){//LEFT
+        moveWalker(MOVEMENT.LEFT);
+    }
+    if(event.keyCode === 68){//RIGHT
+        moveWalker(MOVEMENT.RIGHT);
+    }
+});
+
+const cellSize = 30;
+ctx.lineCap = 'square';
+ctx.lineWidth = 6;
+ctx.strokeStyle = "gray";
+
+const MOVEMENT = {UP:{x:0,y:-1,id:0},DOWN:{x:0,y:1,id:1},LEFT:{x:-1,y:0,id:2},RIGHT:{x:1,y:0,id:3}};
+const MOVEMENTARR = [MOVEMENT.UP,MOVEMENT.DOWN,MOVEMENT.LEFT,MOVEMENT.RIGHT];
+walkerPos = {x:0,y:0};
+walkerOldPos = walkerPos;
+walkPoints = [];
+time = 0;
+
+function moveWalker(dir){
+    if(!checkIfOOB() && checkIfNoWall(dir)){
+        walkerOldPos = {x:walkerPos.x, y:walkerPos.y}
+        walkerPos = {x:walkerPos.x+dir.x, y:walkerPos.y+dir.y}
+        savePos();
+        genCellsAround();
+        ctx.translate((walkerOldPos.x-walkerPos.x)*cellSize, (walkerOldPos.y-walkerPos.y)*cellSize);
+    }else{
+        // wallBreaker(dir)
+    }
+    drawCanvas();
+}
+function checkIfPathExists(dir){
+    if(walkPoints.find(e => e.x == walkerPos.x+dir.x && e.y == walkerPos.y+dir.y)){
+        return true
+    }
+    return false
+}
+function reverseDirID(id){
+    if(id == 0){
+        return 1
+    }else if(id == 1){
+        return 0
+    }else if(id == 2){
+        return 3
+    }else if(id == 3){
+        return 2
+    }
+}
+function checkIfOOB(){
+    if(walkPoints.find(e => e.x == walkerPos.x && e.y == walkerPos.y)){
+        return false
+    }
+    return true
+}
+function checkIfNoWall(dir){
+    if(walkPoints.find(e => e.x == walkerPos.x && e.y == walkerPos.y).paths[dir.id] == false){
+        if(walkPoints.find(e => e.x == walkerPos.x+dir.x && e.y == walkerPos.y+dir.y)){
+            if(walkPoints.find(e => e.x == walkerPos.x+dir.x && e.y == walkerPos.y+dir.y).paths[reverseDirID(dir.id)] == false){
+                return true
+            }
+        }else{
+            return true
+        }
+    }
+    return false
+}
+
+function wallBreaker(dir){
+    if(walkPoints.find(e => e.x == walkerPos.x && e.y == walkerPos.y).paths[dir.id] == true){
+        walkPoints.find(e => e.x == walkerPos.x && e.y == walkerPos.y).paths[dir.id] = false
+        
+    }
+    if(walkPoints.find(e => e.x == walkerPos.x+dir.x && e.y == walkerPos.y+dir.y)){
+        walkPoints.find(e => e.x == walkerPos.x+dir.x && e.y == walkerPos.y+dir.y).paths[reverseDirID(dir.id)] = false
+    }
+    genCellsAround()
+}
+function tracer(){
+    ctx.fillStyle = "black";
+    ctx.fillRect(walkerPos.x*cellSize+cellSize/4,walkerPos.y*cellSize+cellSize/4, cellSize/2,cellSize/2);
+}
+function checkIfPathExistsInPos(pos, dir){
+    if(walkPoints.find(e => e.x == pos.x+dir.x && e.y == pos.y+dir.y)){
+        return true
+    }
+    return false
+}
+function genCellsAround(){
+    function checkForWalls(pos, matrix){
+        for (var i=0; i < 4; i++){
+            if(checkIfPathExistsInPos(pos, MOVEMENTARR[i])){
+                return []
+            }
+        }
+    }
+    
+    for (var i=0; i < 4; i++){
+        // function checkForWalls(pos, matrix){//older
+        //     for (var i2=0; i2 < 4; i2++){
+        //         if(checkIfPathExistsInPos(pos, MOVEMENTARR[i2])){
+        //             matrix[i2] = false
+        //         }
+        //     }
+        //     return matrix
+        // }
+        if(!walkPoints.find(e => e.x == walkerPos.x+MOVEMENTARR[i].x && e.y == walkerPos.y+MOVEMENTARR[i].y)){
+            if(checkIfNoWall(MOVEMENTARR[i])){
+                var point = new Object();
+                point["x"] = walkerPos.x+MOVEMENTARR[i].x;
+                point["y"] = walkerPos.y+MOVEMENTARR[i].y;
+                // point["paths"] = [1,1,1,1];//UP,DOWN,LEFT,RIGHT
+                randomPath = [Math.round(Math.random()),Math.round(Math.random()),Math.round(Math.random()),Math.round(Math.random())];//UP,DOWN,LEFT,RIGHT
+                // randomPath = [1,1,1,1]
+                randomPath[reverseDirID(i)] = false;
+                // randomPath = checkForWalls(pos, matrix);
+                point["paths"] = randomPath;
+                walkPoints.push(point);
+            }
+        }
+    }
+}
+function savePos(){
+    if(!walkPoints.find(e => e.x == walkerPos.x && e.y == walkerPos.y)){
+        var point = new Object();
+        point["x"] = walkerPos.x;
+        point["y"] = walkerPos.y;
+        // point["paths"] = [1,1,1,1];//UP,DOWN,LEFT,RIGHT
+        // point["paths"] = [Math.round(Math.random()),Math.round(Math.random()),Math.round(Math.random()),Math.round(Math.random())];
+        point["paths"] = [0,0,0,0]
+        walkPoints.push(point);
+    }
+}
+savePos();
+genCellsAround();
+
+
+function drawCanvas(){
+    // ctx.clearRect(walkerPos.x*cellSize-canvas.width/2, walkerPos.y*cellSize-canvas.height/2, canvas.width, canvas.height);
+    ctx.fillStyle = "black";
+    ctx.fillRect(walkerPos.x*cellSize-canvas.width/2, walkerPos.y*cellSize-canvas.height/2, canvas.width, canvas.height);
+    ctx.beginPath();
+    for (var i=0; i < walkPoints.length; i++){
+        ctx.fillStyle = "lightgray";
+        ctx.fillRect(walkPoints[i].x*cellSize-1,walkPoints[i].y*cellSize-1,cellSize+2,cellSize+2);
+        if(walkPoints[i].paths[0]){//UP
+            ctx.moveTo(walkPoints[i].x*cellSize, walkPoints[i].y*cellSize);
+            ctx.lineTo(walkPoints[i].x*cellSize+cellSize, walkPoints[i].y*cellSize);
+        }
+        if(walkPoints[i].paths[1]){//DOWN
+            ctx.moveTo(walkPoints[i].x*cellSize, walkPoints[i].y*cellSize+cellSize);
+            ctx.lineTo(walkPoints[i].x*cellSize+cellSize, walkPoints[i].y*cellSize+cellSize);
+        }
+        if(walkPoints[i].paths[2]){//LEFT
+            ctx.moveTo(walkPoints[i].x*cellSize, walkPoints[i].y*cellSize);
+            ctx.lineTo(walkPoints[i].x*cellSize, walkPoints[i].y*cellSize+cellSize);
+        }
+        if(walkPoints[i].paths[3]){//RIGHT
+            ctx.moveTo(walkPoints[i].x*cellSize+cellSize, walkPoints[i].y*cellSize+cellSize);
+            ctx.lineTo(walkPoints[i].x*cellSize+cellSize, walkPoints[i].y*cellSize);
+        }
+    }
+    ctx.stroke();
+    ctx.fillStyle = "white";
+    ctx.fillRect(cellSize/4,cellSize/4, cellSize/2,cellSize/2);
+    tracer();
+    time++
+}
+drawCanvas();
+}
+</script>

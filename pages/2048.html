@@ -1,0 +1,175 @@
+<style>
+canvas {
+    border-color: rgb(44, 44, 44);
+    border-style: solid;
+}
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+</style>
+<title>2048</title>
+<script>
+window.onload = function(){
+var canvas = document.createElement("canvas");
+var ctx = canvas.getContext("2d");
+
+const cellSize = 100;
+const gameBounds = {w:4,h:4};
+canvas.width = gameBounds.w*cellSize;
+canvas.height = gameBounds.h*cellSize;
+document.body.appendChild(canvas);
+
+let board = [];
+function genBoard(){
+    for (var r = 0; r < gameBounds.h; r++) {
+    board.push([]);
+        for (var c = 0; c < gameBounds.w; c++) {
+            board[r].push(0);
+        }
+    }
+}
+genBoard();
+
+function addRandom(){
+    iteration = 0;
+    randomNum = Math.round(Math.random()*(gameBounds.h*gameBounds.w));
+
+    while(true){
+        if(board[randomNum%gameBounds.w][Math.floor(randomNum/gameBounds.w)] === 0){
+            board[randomNum%gameBounds.w][Math.floor(randomNum/gameBounds.w)] = Math.ceil(Math.random()*2)*2;
+            return
+        }else{
+            randomNum = Math.round(Math.random()*(gameBounds.h*gameBounds.w));
+        }
+
+        iteration++;
+        if(iteration > gameBounds.w*gameBounds.h){
+            return
+        }
+    }
+}
+for (var i=0; i < 2; i++){
+    addRandom();
+}
+// console.log(board);
+
+
+function slide(row){
+    //compress
+    row = row.filter(num => num != 0);
+
+    // //merge
+    for (var i = 0; i < row.length-1; i++) {
+        if(row[i] == row[i+1]){
+            row[i] *= 2;
+            row[i+1] = 0;
+        }
+    }
+
+    //compress
+    row = row.filter(num => num != 0);
+
+    while(row.length < gameBounds.w){
+        row.push(0);
+    }
+    return row;
+}
+
+function move(dir){
+    tempBoard = [...board];
+    if(dir.x < 0) {//LEFT
+        for (var r = 0; r < gameBounds.h; r++) {
+            let row = board[r];
+            row = slide(row);
+            board[r] = row;
+        }
+    }
+    if(dir.x > 0) {//RIGHT
+        for (var r = 0; r < gameBounds.h; r++) {
+            let row = board[r];
+            row.reverse();
+            row = slide(row);
+            row.reverse();
+            board[r] = row;
+        }
+    }
+    if(dir.y < 0) {//UP
+        for (var c = 0; c < gameBounds.w; c++) {
+            let row = [];
+            for (var r = 0; r < gameBounds.h; r++) {
+                row.push(board[r][c]);
+            }
+            row = slide(row);
+            for (var r = 0; r < gameBounds.h; r++) {
+                board[r][c] = row[r];
+            }
+        }
+    }
+    if(dir.y > 0) {//DOWN
+        for (var c = 0; c < gameBounds.w; c++) {
+            let row = [];
+            for (var r = 0; r < gameBounds.h; r++) {
+                row.push(board[r][c]);
+            }
+            row.reverse();
+            row = slide(row);
+            row.reverse();
+            for (var r = 0; r < gameBounds.h; r++) {
+                board[r][c] = row[r];
+            }
+        }
+    }
+    // console.log(board);
+
+    addRandom();
+    drawCanvas();
+}
+
+const MOVEMENT = {UP:{x:0,y:-1},DOWN:{x:0,y:1},LEFT:{x:-1,y:0},RIGHT:{x:1,y:0}};
+document.addEventListener('keydown', function(e){
+    if(event.keyCode === 38){//UP//arrow keys
+        move(MOVEMENT.UP);
+    }
+    if(event.keyCode === 40){//DOWN
+        move(MOVEMENT.DOWN);
+    }
+    if(event.keyCode === 37){//LEFT
+        move(MOVEMENT.LEFT);
+    }
+    if(event.keyCode === 39){//RIGHT
+        move(MOVEMENT.RIGHT);
+    }
+});
+
+
+
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+ctx.font = cellSize-60+"px Arial";
+function drawCanvas(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    for (var i=0; i < gameBounds.w; i++){
+        ctx.moveTo(i*cellSize, 0);
+        ctx.lineTo(i*cellSize, canvas.height);
+    }
+    for (var i=0; i < gameBounds.h; i++){
+        ctx.moveTo(0, i*cellSize);
+        ctx.lineTo(canvas.width, i*cellSize);
+    }
+    ctx.stroke();
+
+    for (var r=0; r < board.length; r++){
+        for (var c=0; c < board[r].length; c++){
+            if(board[r][c] != 0){
+                ctx.fillText(board[r][c], c*cellSize+cellSize/2, r*cellSize+cellSize/2);
+            }
+        }
+    }
+}
+drawCanvas();
+}
+</script>

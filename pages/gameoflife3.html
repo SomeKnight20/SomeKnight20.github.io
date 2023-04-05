@@ -1,8 +1,5 @@
 <style>
 canvas {
-    /* position: absolute;
-    top: 0;
-    left: 0; */
     border-color: rgb(44, 44, 44);
     border-style: solid;
     image-rendering: pixelated;
@@ -18,6 +15,7 @@ body {
     color: white;
 }
 </style>
+<title>Game of life</title>
 <script>
 window.onload = function(){
 var canvas = document.createElement("canvas");
@@ -30,18 +28,10 @@ canvas.height = imgBounds.h*cellSize;
 document.body.appendChild(canvas);
 
 
-// canvas.width = window.innerWidth;
-// canvas.height = window.innerHeight;
-// const imgBounds = {w:Math.floor(canvas.width/cellSize),h:Math.floor(canvas.height/cellSize)};
-
-
 var cells = [];
 function genCells(){
     for (var i = 0; i < imgBounds.w*imgBounds.h; i++) {
-        // cells.push(false);//bool
-        // cells.push(i%imgBounds.w > (imgBounds.w/3) && i%imgBounds.w < (imgBounds.w/3)*2 && Math.floor(i/imgBounds.h) > (imgBounds.h/3) && Math.floor(i/imgBounds.h) < (imgBounds.h/3)*2);//square
         cells.push(Math.round(Math.random()));
-        // cells.push(Math.floor(i/3)%2);
     }
 }
 genCells();
@@ -66,11 +56,6 @@ const NEIGHBOR = [
 {x:-1, y:1},{x:0, y:1},{x:1, y:1}];
 
 function checkNeighborCells(i){
-    // if(cells[XYtoLoc(XYplus(LocToXY(i), NEIGHBOR[1]))]){
-    //     return true;
-    // }
-    // return false;
-    
     //alive neighbor count
     var count = 0;
     for (var i2=0; i2 < NEIGHBOR.length; i2++){

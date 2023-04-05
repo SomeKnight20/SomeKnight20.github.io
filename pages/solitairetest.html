@@ -1,0 +1,237 @@
+<style>
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+</style>
+<script>
+window.onload = function(){
+document.addEventListener('contextmenu', event => event.preventDefault());
+var canvas = document.createElement("canvas");
+var ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+document.body.appendChild(canvas);
+
+
+var mouse = {
+    node: undefined,
+    loopnode: undefined,
+    heldnode: undefined,
+    hold: false,
+    holdMiddle: false,
+    old: {x:0, y:0},
+    pos: {x:0, y:0},
+    dir: {x:0, y:0},
+    clickpos: {x:0, y:0}
+}
+document.addEventListener('mousedown', function(e){
+    
+    if(e.button === 0){
+        mouse.hold = true;
+        mouse.pos = {x:e.clientX, y:e.clientY};
+        mouse.clickpos = {x:e.clientX, y:e.clientY};
+    }
+    if(e.button === 1){
+        mouse.holdMiddle = true;
+    }
+    if(e.button === 2){
+        if(mouse.hold && mouse.heldnode != undefined){
+            cards[mouse.heldnode].flipped = !cards[mouse.heldnode].flipped;
+        }
+    }
+});
+document.addEventListener('mousemove', function(e){
+    mouse.pos = {x:e.clientX, y:e.clientY};
+});
+document.addEventListener('mouseup', function(e){
+    if(e.button === 0){
+        // if(mouse.node != undefined && mouse.node != "null" 
+        // && mouse.clickpos.x == mouse.pos.x 
+        // && mouse.clickpos.y == mouse.pos.y){
+        //     //click
+        //     // cards[mouse.node-1].flipped = !cards[mouse.node-1].flipped;
+        //     cards[mouse.loopnode].flipped = !cards[mouse.loopnode].flipped;
+        // }
+        mouse.hold = false;
+        mouse.node = undefined;
+        mouse.heldnode = undefined;
+    }
+    if(e.button === 1){
+        mouse.holdMiddle = false;
+    }
+});
+
+document.addEventListener('keydown', function(e){
+    console.log(event.keyCode);
+    if(event.keyCode === 69){
+        console.log("E");
+    }
+    if(event.keyCode === 16){
+        for (var i in cards) {
+            cards[i].flipped = false;
+        }
+    }
+    if(event.keyCode === 17){
+        for (var i in cards) {
+            cards[i].flipped = true;
+        }
+    }
+});
+
+
+function xyarrayminus(array1, array2){
+    return {x:array1.x-array2.x , y:array1.y-array2.y}
+}
+function getRandom(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+
+//https://codepen.io/ogab/full/peXpqW
+// var tempcards = {
+//     spade:"🂡🂢🂣🂤🂥🂦🂧🂨🂩🂪🂫🂭🂮",
+//     club:"🃑🃒🃓🃔🃕🃖🃗🃘🃙🃚🃛🃝🃞",
+//     heart:"🂱🂲🂳🂴🂵🂶🂷🂸🂹🂺🂻🂽🂾",
+//     diamond:"🃁🃂🃃🃄🃅🃆🃇🃈🃉🃊🃋🃍🃎",
+//     special:"🂠🃟♣♠♥♦"
+// }
+
+//suits 4
+//cards 13 + back
+const CardIcons = [
+    ["🂡","🂢","🂣","🂤","🂥","🂦","🂧","🂨","🂩","🂪","🂫","🂭","🂮"],
+    ["🃑","🃒","🃓","🃔","🃕","🃖","🃗","🃘","🃙","🃚","🃛","🃝","🃞"],
+    ["🂱","🂲","🂳","🂴","🂵","🂶","🂷","🂸","🂹","🂺","🂻","🂽","🂾"],
+    ["🃁","🃂","🃃","🃄","🃅","🃆","🃇","🃈","🃉","🃊","🃋","🃍","🃎"]
+];
+
+
+var cards = [];
+var cardSize = 100;
+var cardIndex = 0;
+
+function Card(){
+    // this.suit = 0;
+    // this.card = 0;
+    this.card = cardIndex%13;
+    this.suit = Math.floor(cardIndex / 13);
+    this.flipped = !true;
+
+    this.x = canvas.width/2;
+    this.y = canvas.height/4+cardIndex*2;
+
+    cardIndex++;
+    cards[cardIndex] = this;
+    this.id = cardIndex;
+}
+
+Card.prototype.draw = function() {
+    // this.suit++;
+    // this.card++;
+
+    // if(this.suit > 3){
+    //     this.suit = 0
+    // }
+    // if(this.card > 13){
+    //     this.card = 0
+    // }
+
+
+    ctx.fillStyle="white";
+    ctx.fillRect(this.x-cardSize/3.3, this.y-cardSize/1.25, cardSize/1.7, cardSize/1.1); 
+
+    ctx.font = cardSize+"px Arial";
+    if(this.suit > 1 && this.flipped){
+        ctx.fillStyle = "red";
+    }else{
+        ctx.fillStyle = "black";
+    }
+    ctx.textAlign = "center";
+    if(this.flipped){
+        ctx.fillText(CardIcons[this.suit][this.card], this.x, this.y);
+    }else{
+        ctx.fillText("🂠", this.x, this.y);
+    }
+    
+
+    //xy pointer
+    // ctx.beginPath();
+    // ctx.fillStyle="red";
+    // ctx.arc(this.x, this.y, 1, 0, Math.PI*2, true); 
+    // ctx.closePath();
+    // ctx.fill();
+}
+Card.prototype.func = function(loopid) {
+    // this.x += getRandom(-5, 5);
+    // this.y += getRandom(-5, 5);
+
+    this.collidingBox = function(pos){
+        return pos.x < this.x-cardSize/3.3+cardSize/1.7 && pos.x > this.x-cardSize/3.3
+            && pos.y < this.y-cardSize/1.25+cardSize/1.1 && pos.y > this.y-cardSize/1.25;
+    }
+
+    if(mouse.hold && mouse.node == undefined){
+        if(this.collidingBox(mouse.pos)){
+            mouse.node = this.id;
+            mouse.loopnode = loopid;
+        }
+    }
+    if(mouse.node == this.id){
+        mouse.heldnode = loopid;
+        this.x += mouse.dir.x;
+        this.y += mouse.dir.y;
+    }
+
+    if(mouse.holdMiddle){
+        this.x = mouse.pos.x+getRandom(-5, 5);
+        this.y = mouse.pos.y+loopid+getRandom(-5, 5);
+    }
+}
+
+//new Card 52;
+for (var i=0; i< 52; i++){
+    new Card;
+}
+
+setInterval(function() {
+    mouse.dir = xyarrayminus(mouse.pos, mouse.old);
+    mouse.old = mouse.pos;
+
+    ctx.fillStyle = "green";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // ctx.font = "100px Arial";
+    // ctx.fillStyle = "black";
+    // ctx.textAlign = "center";
+    // ctx.fillText(CardIcons[0][1], canvas.width/2, canvas.height/2);
+
+    cards.sort(function(a, b) {
+        return a.y+ - b.y;
+    });
+
+    for (var i in cards) {
+        cards[i].draw();
+        cards[cards.length-2-i].func(cards.length-2-i);
+        // console.log(cards[i].flipped);
+    }
+    if(mouse.hold && mouse.node == undefined){
+        mouse.node = "null";
+    }
+
+    ctx.font = 10+"px Arial";
+    ctx.fillStyle = "black";
+    ctx.textAlign = "left";
+    ctx.fillText(mouse.pos.x+", "+mouse.pos.y, 0, 10);
+    ctx.fillText(mouse.dir.x+", "+mouse.dir.y, 0, 20);
+    ctx.fillText(mouse.hold, 0, 30);
+    ctx.fillText(mouse.node, 0, 40);
+    ctx.fillText(mouse.loopnode, 0, 50);
+    ctx.fillText(mouse.heldnode, 0, 60);
+    ctx.fillText(mouse.clickpos.x+", "+mouse.clickpos.y, 0, 70);
+    ctx.fillText(cards.length-1, 0, 80);
+}, 60/6);
+}
+</script>
