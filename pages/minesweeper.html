@@ -1,0 +1,312 @@
+<style>
+/* canvas {
+    border-color: rgb(44, 44, 44);
+    border-style: solid;
+    image-rendering: pixelated;
+} */
+#board {
+    border-color: rgb(44, 44, 44);
+    border-style: solid;
+    width: min-content;
+}
+#topBar {
+    border-color: rgb(44, 44, 44);
+    border-bottom-style: solid;
+}
+* {
+    user-select: none;
+}
+</style>
+<form id="form">
+    <input id="width" type="number" name="width" value="40" />
+    <input id="height" type="number" name="height" value="30" />
+    <input id="mines" type="number" name="mines" value="120" />
+    <input type="submit" value="Generate">
+</form>
+<div id="board">
+    <div id="topBar"><span id="minesleft">0</span> mines left <span id="gameEnd"></span></div>
+</div>
+
+<script>
+window.onload = function(){
+var canvas = document.createElement("canvas");
+var ctx = canvas.getContext("2d");
+document.addEventListener('contextmenu', event => event.preventDefault());
+
+
+var mineAmount = 0;
+const cellSize = 30;
+gameBounds = {w:0,h:0}
+
+const queryString = window.location.search;
+if(queryString != ""){
+    const urlParams = new URLSearchParams(queryString);
+    document.getElementById("width").value = urlParams.get('width');
+    document.getElementById("height").value = urlParams.get('height');
+    document.getElementById("mines").value = urlParams.get('mines');
+
+    gameBounds = {w:urlParams.get('width'),h:urlParams.get('height')};
+    mineAmount = urlParams.get('mines');
+}else{
+    gameBounds = {w:40,h:30};
+    mineAmount = 120;
+}
+
+// const gameBounds = {w:40,h:30};
+canvas.width = gameBounds.w*cellSize;
+canvas.height = gameBounds.h*cellSize;
+// document.body.appendChild(canvas);
+document.getElementById("board").appendChild(canvas);
+
+
+let board = [];
+function genBoard(){
+    for (var r = 0; r < gameBounds.h*gameBounds.w; r++) {
+        board.push({mine:false,revealed:false,flagged:false});
+    }
+}
+genBoard();
+
+// mineAmount = board.length/10;
+
+
+
+const NEIGHBOR = [
+{x:-1,y:-1},{x:0,y:-1},{x:1,y:-1},
+{x:-1, y:0},           {x:1, y:0},
+{x:-1, y:1},{x:0, y:1},{x:1, y:1}];
+
+function XYtoLoc(pos){//translates xy pos for the grid location
+    if(pos.x < 0 || pos.y < 0){//bounds
+        return null
+    }
+    if(pos.x > gameBounds.w-1 || pos.y > gameBounds.h-1){
+        return null
+    }
+    return pos.x + gameBounds.w*pos.y;
+}
+function LocToXY(i){//translates xy pos for the display
+    return {x:i%(gameBounds.w), y:Math.floor(i/(gameBounds.w))};
+}
+function XYplus(pos, pos2){
+    return {x:pos.x+pos2.x, y:pos.y+pos2.y};
+}
+
+
+function checkBombPlace(id, i3){
+    if(i3 == id){
+        return false;
+    }
+    for (var i=0; i < NEIGHBOR.length; i++){
+        id2 = XYtoLoc(XYplus(LocToXY(id), NEIGHBOR[i]));
+        if(board[id2] && i3 == id2){
+            return false;
+        }
+    }
+    return true;
+}
+
+
+minesPlaced = false;
+function placeMines(amount, id){
+    // console.log("mines", amount);
+    minesPlaced = true;
+    mines = 0;
+    loop = 0;
+    if(amount >= board.length){
+        amount = board.length-9;
+    }
+    while(mines < amount){
+        for (var i = 0; i < board.length; i++) {
+            if(mines >= amount || loop > board.length){
+                return
+            }
+            // loop++;
+            if(!board[i].mine 
+            && i != id 
+            && checkBombPlace(id, i) 
+            && Math.round(Math.random()*10) == 0
+            ){
+                board[i].mine = true;
+                mines++;
+            }
+        }
+    }
+}
+
+
+function checkRevealed(){
+    mines = 0;
+    revealed = 0;
+    flagged = 0;
+    for (var i=0; i < board.length; i++){
+        if(board[i].mine){
+            mines++
+        }
+        if(board[i].revealed){
+            revealed++
+        }
+        if(board[i].flagged){
+            flagged++
+        }
+    }
+    document.getElementById("minesleft").innerHTML = mines-flagged;
+    if(revealed+mines == board.length){
+        console.log("Victory");
+        revealAll();
+        document.getElementById("gameEnd").innerHTML = "Victory";
+    }
+}
+
+function revealTile(id){
+    if(board[id].mine){
+        revealAll();
+        console.log("Game over");
+        document.getElementById("gameEnd").innerHTML = "Game over";
+    }
+    board[id].revealed = true;
+    board[id].flagged = false;
+    floodRevealTiles(id);
+}
+function revealAll(){
+    for (var i=0; i < board.length; i++){
+        board[i].revealed = true;
+    }
+}
+
+function floodRevealTiles(id){
+    // console.log("a");
+    if(countMines(id) == 0){
+        for (var i=0; i < NEIGHBOR.length; i++){
+            id2 = XYtoLoc(XYplus(LocToXY(id), NEIGHBOR[i]));
+            if(board[id2] && !board[id2].revealed){
+                revealTile(id2);
+                // floodRevealTiles(id2);
+            }
+        }
+    }
+    
+}
+
+
+function revealNeighbors(id){
+    mineCount = 0;
+    flagCount = 0;
+    for (var i=0; i < NEIGHBOR.length; i++){
+        id2 = XYtoLoc(XYplus(LocToXY(id), NEIGHBOR[i]));
+        if(board[id2]){
+            if(board[id2].mine){
+                mineCount++;
+            }
+            if(board[id2].flagged){
+                flagCount++;
+            }
+        }
+    }
+    // console.log(flagCount, mineCount);
+    if(flagCount == mineCount){
+        for (var i=0; i < NEIGHBOR.length; i++){
+            id2 = XYtoLoc(XYplus(LocToXY(id), NEIGHBOR[i]));
+            if(board[id2] && !board[id2].flagged){
+                revealTile(id2);
+            }
+        }
+    }
+}
+function clickTile(id){
+    // console.log(id);
+    if(board[id].revealed){
+        revealNeighbors(id);
+    }
+    if(!board[id].flagged){
+        if(!minesPlaced){
+            placeMines(mineAmount, id);
+        }
+        revealTile(id);
+        floodRevealTiles(id);
+    }
+}
+function flagTile(id){
+    // console.log(id);
+    if(!board[id].revealed){
+        board[id].flagged = !board[id].flagged;
+    }
+}
+document.addEventListener('mouseup', function(e){
+    rect = canvas.getBoundingClientRect();
+    pos = {x:(e.clientX-rect.left), y:(e.clientY-rect.top)};
+    // console.log(Math.floor(pos.x/cellSize));
+    if(pos.x < gameBounds.w*cellSize && pos.x > 0
+    && pos.y < gameBounds.h*cellSize && pos.y > 0){
+        if(e.button === 0){
+            clickTile(Math.floor(pos.x/cellSize)%gameBounds.w+Math.floor(pos.y/cellSize)*gameBounds.w);
+        }
+        if(e.button === 2){
+            flagTile(Math.floor(pos.x/cellSize)%gameBounds.w+Math.floor(pos.y/cellSize)*gameBounds.w);
+        }
+        drawCanvas();
+        checkRevealed();
+    }
+    // ctx.fillRect(pos.x, pos.y, 20, 20);
+});
+
+
+
+
+function countMines(id){
+    var count = 0;
+    for (var i=0; i < NEIGHBOR.length; i++){
+        id2 = XYtoLoc(XYplus(LocToXY(id), NEIGHBOR[i]));
+        if(board[id2] && board[id2].mine){
+            count++;
+        }
+    }
+    if(count == 0){
+        return 0;
+    }
+    return count;
+}
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+ctx.font = cellSize-10+"px Arial";
+ctx.lineWidth = 2;
+function drawCanvas(){
+    ctx.fillStyle = "lightgray";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i=0; i < board.length; i++){
+        if(board[i].revealed){
+            ctx.fillStyle = "black";
+            if(board[i].mine){
+                ctx.fillText("●", (i%gameBounds.w)*cellSize+cellSize/2, (Math.floor(i/gameBounds.w))*cellSize+cellSize/2);
+            }else{
+                mineCount = countMines(i)
+                if(mineCount > 0){
+                    ctx.fillText(mineCount, (i%gameBounds.w)*cellSize+cellSize/2, (Math.floor(i/gameBounds.w))*cellSize+cellSize/2);
+                }
+            }
+        }else{
+            ctx.fillStyle = "gray";
+            ctx.fillRect((i%gameBounds.w)*cellSize, (Math.floor(i/gameBounds.w))*cellSize, cellSize, cellSize);
+            if(board[i].flagged){
+                ctx.fillStyle = "white";
+                ctx.fillText("X", (i%gameBounds.w)*cellSize+cellSize/2, (Math.floor(i/gameBounds.w))*cellSize+cellSize/2);
+            }
+        }
+    }
+
+    ctx.fillStyle = "black";
+    ctx.beginPath();
+    for (var i=1; i < gameBounds.w; i++){
+        ctx.moveTo(i*cellSize, 0);
+        ctx.lineTo(i*cellSize, canvas.height);
+    }
+    for (var i=1; i < gameBounds.h; i++){
+        ctx.moveTo(0, i*cellSize);
+        ctx.lineTo(canvas.width, i*cellSize);
+    }
+    ctx.stroke();
+}
+drawCanvas();
+}
+</script>
