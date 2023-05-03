@@ -1,10 +1,12 @@
 <style>
 /* canvas {
-    border-color: rgb(44, 44, 44);
-    border-style: solid;
     image-rendering: pixelated;
 } */
+body {
+    background-color: black;
+}
 #board {
+    background-color: white;
     border-color: rgb(44, 44, 44);
     border-style: solid;
     width: min-content;
@@ -24,7 +26,7 @@
     <input type="submit" value="Generate">
 </form>
 <div id="board">
-    <div id="topBar"><span id="minesleft">0</span> mines left <span id="gameEnd"></span></div>
+    <div id="topBar"><span id="minesleft">0</span> mines left</div>
 </div>
 
 <script>
@@ -125,7 +127,7 @@ function placeMines(amount, id){
             if(!board[i].mine 
             && i != id 
             && checkBombPlace(id, i) 
-            && Math.round(Math.random()*10) == 0
+            && Math.round(Math.random()*(board.length/100)) == 0
             ){
                 board[i].mine = true;
                 mines++;
@@ -150,19 +152,28 @@ function checkRevealed(){
             flagged++
         }
     }
-    document.getElementById("minesleft").innerHTML = mines-flagged;
+    if(document.getElementById("minesleft")){
+        document.getElementById("minesleft").innerHTML = mines-flagged;
+    }
+    
     if(revealed+mines == board.length){
-        console.log("Victory");
-        revealAll();
-        document.getElementById("gameEnd").innerHTML = "Victory";
+        // console.log("Victory");
+        for (var i=0; i < board.length; i++){
+            if(board[i].mine){
+                board[i].flagged = true;
+            }
+        }
+        document.getElementById("topBar").innerHTML = "Victory";
     }
 }
 
+gameOverTile = null;
 function revealTile(id){
-    if(board[id].mine){
+    if(board[id].mine && gameOverTile == null){
         revealAll();
-        console.log("Game over");
-        document.getElementById("gameEnd").innerHTML = "Game over";
+        // console.log("Game over");
+        gameOverTile = id;
+        document.getElementById("topBar").innerHTML = "Game over";
     }
     board[id].revealed = true;
     board[id].flagged = false;
@@ -179,7 +190,7 @@ function floodRevealTiles(id){
     if(countMines(id) == 0){
         for (var i=0; i < NEIGHBOR.length; i++){
             id2 = XYtoLoc(XYplus(LocToXY(id), NEIGHBOR[i]));
-            if(board[id2] && !board[id2].revealed){
+            if(board[id2] && !board[id2].revealed && !board[id2].flagged){
                 revealTile(id2);
                 // floodRevealTiles(id2);
             }
@@ -244,9 +255,9 @@ document.addEventListener('mouseup', function(e){
         if(e.button === 2){
             flagTile(Math.floor(pos.x/cellSize)%gameBounds.w+Math.floor(pos.y/cellSize)*gameBounds.w);
         }
-        drawCanvas();
         checkRevealed();
     }
+    drawCanvas();
     // ctx.fillRect(pos.x, pos.y, 20, 20);
 });
 
@@ -258,6 +269,19 @@ function countMines(id){
     for (var i=0; i < NEIGHBOR.length; i++){
         id2 = XYtoLoc(XYplus(LocToXY(id), NEIGHBOR[i]));
         if(board[id2] && board[id2].mine){
+            count++;
+        }
+    }
+    if(count == 0){
+        return 0;
+    }
+    return count;
+}
+function countFlags(id){
+    var count = 0;
+    for (var i=0; i < NEIGHBOR.length; i++){
+        id2 = XYtoLoc(XYplus(LocToXY(id), NEIGHBOR[i]));
+        if(board[id2] && board[id2].flagged){
             count++;
         }
     }
@@ -278,10 +302,20 @@ function drawCanvas(){
         if(board[i].revealed){
             ctx.fillStyle = "black";
             if(board[i].mine){
+                if(i == gameOverTile){
+                    ctx.fillStyle = "red";
+                    ctx.fillRect((i%gameBounds.w)*cellSize, (Math.floor(i/gameBounds.w))*cellSize, cellSize, cellSize);
+                }
+                ctx.font = cellSize+"px Arial";
+                ctx.fillStyle = "black";
                 ctx.fillText("●", (i%gameBounds.w)*cellSize+cellSize/2, (Math.floor(i/gameBounds.w))*cellSize+cellSize/2);
             }else{
                 mineCount = countMines(i)
                 if(mineCount > 0){
+                    if(countFlags(i) > mineCount){
+                        ctx.fillStyle = "red";
+                    }
+                    ctx.font = cellSize-10+"px Arial";
                     ctx.fillText(mineCount, (i%gameBounds.w)*cellSize+cellSize/2, (Math.floor(i/gameBounds.w))*cellSize+cellSize/2);
                 }
             }
@@ -295,7 +329,7 @@ function drawCanvas(){
         }
     }
 
-    ctx.fillStyle = "black";
+    ctx.strokeStyle = "lightgray";
     ctx.beginPath();
     for (var i=1; i < gameBounds.w; i++){
         ctx.moveTo(i*cellSize, 0);
