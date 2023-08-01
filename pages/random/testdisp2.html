@@ -1,0 +1,124 @@
+<style>
+canvas {
+    /* position: absolute;
+    top: 0;
+    left: 0; */
+    border-color: rgb(44, 44, 44);
+    border-style: solid;
+    image-rendering: pixelated;
+}
+body {
+    /* overflow: hidden; */
+    padding: 0; 
+    margin: 0;
+    background-color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+</style>
+<script>
+window.onload = function(){
+var canvas = document.createElement("canvas");
+var ctx = canvas.getContext("2d");
+
+const cellSize = 2;
+const imgBounds = {w:400,h:400};
+canvas.width = imgBounds.w*cellSize;
+canvas.height = imgBounds.h*cellSize;
+document.body.appendChild(canvas);
+
+
+// canvas.width = window.innerWidth;
+// canvas.height = window.innerHeight;
+// const imgBounds = {w:Math.floor(canvas.width/cellSize),h:Math.floor(canvas.height/cellSize)};
+
+
+var cells = [];
+function genCells(){
+    for (var i = 0; i < imgBounds.w*imgBounds.h; i++) {
+        cells.push(false);//bool
+        // cells.push(i%imgBounds.w > (imgBounds.w/3) && i%imgBounds.w < (imgBounds.w/3)*2 && Math.floor(i/imgBounds.h) > (imgBounds.h/3) && Math.floor(i/imgBounds.h) < (imgBounds.h/3)*2);//square
+        // cells.push(Math.round(Math.random()));
+        // cells.push(Math.floor(i/3)%2);
+    }
+}
+genCells();
+cells[Math.round(cells.length/2)+imgBounds.w/2] = true;
+
+var tempCells = [...cells];
+
+
+function XYtoLoc(pos){
+    // if(pos.x < 0 || pos.y < 0){//bounds
+    //     return null
+    // }
+    // if(pos.x > imgBounds.w-1 || pos.y > imgBounds.h-1){
+    //     return null
+    // }
+    return ((pos.x+imgBounds.w)%imgBounds.w) + imgBounds.w*((pos.y+imgBounds.h)%imgBounds.h);
+}
+
+function LocToXY(i){
+    return {x:i%(imgBounds.w), y:Math.floor(i/(imgBounds.w))};
+}
+function XYplus(pos, pos2){
+    return {x:pos.x+pos2.x, y:pos.y+pos2.y};
+}
+
+
+
+const NEIGHBOR = [
+{x:-1,y:-1},{x:0,y:-1},{x:1,y:-1},
+{x:-1, y:0},           {x:1, y:0},
+{x:-1, y:1},{x:0, y:1},{x:1, y:1}];
+
+const NEIGHBOR4WAY = [
+            {x:0,y:-1},
+{x:-1, y:0},           {x:1, y:0},
+            {x:0, y:1}];
+
+const NEIGHBOR4WAYDIAG = [
+{x:-1,y:-1},{x:1,y:-1},
+{x:-1, y:1},{x:1, y:1}];
+function checkNeighborCells(i){
+    let counter = 0;
+    for (var i2=0; i2 < NEIGHBOR.length; i2++){
+        if(cells[XYtoLoc(XYplus(LocToXY(i), NEIGHBOR[i2]))]){
+            counter++;
+        }
+    }
+
+    if(!cells[i]){
+        if(counter > 0){
+            return Math.floor(Math.random()*100/99);
+        }
+        return false;
+    }else{
+        return true;
+    }
+}
+
+function drawCells(){
+    for (var i=0; i < cells.length; i++){
+        if(cells[i]){
+            ctx.fillStyle = "white";
+            ctx.fillRect((i%imgBounds.w)*cellSize, (Math.floor(i/imgBounds.w))*cellSize, cellSize, cellSize);
+        }
+        tempCells[i] = checkNeighborCells(i);
+    }
+    cells = [...tempCells];
+}
+
+function drawCanvas(){
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    drawCells();
+}
+drawCanvas();
+setInterval(function() {
+    drawCanvas();
+}, 10);
+}
+</script>

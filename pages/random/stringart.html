@@ -1,0 +1,88 @@
+<style>
+body {
+    /* overflow: hidden; */
+    padding: 0; 
+    margin: 0;
+    /* background-color: black; */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+</style>
+<script>
+window.onload = function(){
+var canvas = document.createElement("canvas");
+var ctx = canvas.getContext("2d");
+
+const imgBounds = {w:1000,h:1000};
+canvas.width = imgBounds.w;
+canvas.height = imgBounds.h;
+document.body.appendChild(canvas);
+
+function getDist2(pos1, pos2){
+    return Math.hypot(pos1.x - pos2.x, pos1.y - pos2.y);
+}
+function getAngleDeg2(pos1, pos2){
+    return Math.atan2(pos1.y - pos2.y, pos1.x - pos2.x) * 180 / Math.PI;
+}
+function DegtoRad(degrees){
+    return degrees * Math.PI / 180;
+}
+function getXYfromAngle2(pos, angle, distance){//rads
+    return {x:distance*Math.cos(DegtoRad(angle))+pos.x, y:distance*Math.sin(DegtoRad(angle))+pos.y}
+}
+function getXYfromAngle(x, y, angle, distance){//rads
+    return {x:distance*Math.cos(DegtoRad(angle))+x, y:distance*Math.sin(DegtoRad(angle))+y}
+}
+
+var points = 100/2;//100
+var pointSize = 4;
+var radius = imgBounds.h/2;
+ctx.lineWidth = 0.1;
+
+currentAngle = 0;
+
+function drawLine(startAng, endAng){
+    pos = getXYfromAngle(imgBounds.w/2, imgBounds.h/2, startAng, radius);
+    ctx.moveTo(pos.x, pos.y);
+    pos = getXYfromAngle(imgBounds.w/2, imgBounds.h/2, endAng, radius);
+    ctx.lineTo(pos.x, pos.y);
+}
+
+function drawCanvas(){
+    // ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    // ctx.strokeStyle = "rgb("+Math.random()*255+","+Math.random()*255+","+Math.random()*255+")";
+
+    drawLine(Math.random()*360, Math.random()*360);
+
+    // endAng = currentAngle-(180+Math.random()*30);
+    // drawLine(currentAngle, endAng);
+    // currentAngle = endAng;
+
+    // for (var i=0; i < points; i++){
+    //     drawLine((360/points)*i, (360/points)*Math.round(Math.random()*points));
+    // }
+    
+    // for (var i=0; i < points; i++){
+    //     pos = getXYfromAngle(imgBounds.w/2, imgBounds.h/2, (360/points)*i, radius);
+    //     ctx.moveTo(pos.x, pos.y);
+    //     for (var i2=0; i2 < points; i2++){
+    //         pos2 = getXYfromAngle(imgBounds.w/2, imgBounds.h/2, (360/points)*i2, radius);
+    //         ctx.lineTo(pos2.x, pos2.y);
+    //         ctx.moveTo(pos.x, pos.y);
+    //     }
+    // }
+    ctx.stroke();
+    
+}
+drawCanvas();
+
+setInterval(function() {
+    // for (var i=0; i < 10; i++){
+        drawCanvas();
+    // }
+}, 1);
+}
+</script>

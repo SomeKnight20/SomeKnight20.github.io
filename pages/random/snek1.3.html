@@ -1,0 +1,190 @@
+<style>
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<body>
+<canvas id="canvas" width="500" height="500"></canvas>
+</body>
+<script>
+$(window).resize(function(){
+    ctx.canvas.width  = window.innerWidth;
+    ctx.canvas.height = window.innerHeight;
+});
+function getDistance(x1, y1, x2, y2){
+    return Math.hypot(x1 - x2, y1 - y2);
+}
+function getDistance2(pos1, pos2){
+    return Math.hypot(pos1.x - pos2.x, pos1.y - pos2.y);
+}
+function getAngleDeg2(pos1, pos2){
+    return Math.atan2(pos1.y - pos2.y, pos1.x - pos2.x) * 180 / Math.PI;
+}
+function DegtoRad(degrees){
+    return degrees * Math.PI / 180;
+}
+function RadtoDeg(radians){
+    return radians * 180 / Math.PI;
+}
+function getXYfromAngle(x, y, angle, distance){//rads
+    return {x:distance*Math.cos(DegtoRad(angle))+x, y:distance*Math.sin(DegtoRad(angle))+y}
+}
+function getXYfromAngle2(pos, angle, distance){//rads
+    return {x:distance*Math.cos(DegtoRad(angle))+pos.x, y:distance*Math.sin(DegtoRad(angle))+pos.y}
+}
+// arraysplus([2, 1], [5, 7])
+function xyarrayplus(array1, array2){
+    return {x:array1.x+array2.x , y:array1.y+array2.y}
+}
+function xyarrayminus(array1, array2){
+    return {x:array1.x-array2.x , y:array1.y-array2.y}
+}
+
+function find_angle(A,B,C) {
+    var AB = Math.sqrt(Math.pow(B.x-A.x,2)+ Math.pow(B.y-A.y,2));    
+    var BC = Math.sqrt(Math.pow(B.x-C.x,2)+ Math.pow(B.y-C.y,2)); 
+    var AC = Math.sqrt(Math.pow(C.x-A.x,2)+ Math.pow(C.y-A.y,2));
+    return Math.acos((BC*BC+AB*AB-AC*AC)/(2*BC*AB));
+}
+
+function anglevector(A,B,C) {
+    firstAngle = Math.atan2(A.y - B.y, A.x - B.x);
+    secondAngle = Math.atan2(B.y - C.y, B.x - C.x);;
+    angle = secondAngle - firstAngle;
+    result = angle * 180 / Math.PI;
+    return Math.round(result);
+}
+
+// Math.abs(x) //converts to only positive
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+ctx.canvas.width  = window.innerWidth;
+ctx.canvas.height = window.innerHeight;
+ctx.fillStyle = "black";
+
+window.requestAnimationFrame(gameLoop);
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawCircles();
+    window.requestAnimationFrame(gameLoop);
+}
+
+
+let pos = {x: canvas.width/2, y: canvas.height/2};
+let circles = [];
+setCircles(100)
+let circlesize = 10; //2
+function setCircles(amount) {
+    for (var i = 0; i < amount; i++) {
+        var circleobj = new Object();
+        circleobj["id"] = circles.length;
+        circleobj["oldpos"] = {x:0, y:0};
+        circleobj["dir"] = {x:0, y:0};
+        // circleobj["pos"] = {x:Math.random()*canvas.width, y:Math.random()*canvas.height};
+        circleobj["pos"] = {x:canvas.width/2, y:canvas.height/2};
+        circleobj["d"] = {x:0, y:0};
+        circleobj["angle"] = 0;
+        circleobj["actualangle"] = 0;
+        circleobj["anglebtwnvector"] = 0;
+        circleobj["test"] = undefined;
+        circleobj["getangle"] = function (id){
+            return Math.atan2(this.pos.y - circles[id].pos.y, this.pos.x - circles[id].pos.x) * 180 / Math.PI;
+        }
+        circleobj["getdistance"] = function (id){
+            return Math.hypot(this.pos.x - circles[id].pos.x, this.pos.y - circles[id].pos.y);
+        }
+
+        circleobj["func"] = function(){
+            if(this.id-1 >= 0 && this.id+1 < circles.length){
+                this.anglebtwnvector = anglevector(circles[this.id-1].pos, this.pos, circles[this.id+1].pos);
+                this.test = this.anglebtwnvector;
+            }
+
+            if(this.id-1 >= 0){
+                // if(Math.abs(this.anglebtwnvector) < 90){
+                    this.angle = this.getangle(this.id-1);
+                // }
+                
+
+                this.pos = getXYfromAngle2(circles[this.id-1].pos, this.angle, circlesize*2);
+                
+                // this.angle += ((Math.random()*2)-1)*2;
+                // this.actualangle = circles[this.id-1].actualangle+this.angle
+                // this.pos = getXYfromAngle2(circles[this.id-1].pos, this.actualangle, circlesize*2);
+            }
+            // if(this.id != 0){
+            //     this.pos.x += this.d.x;
+            //     this.pos.y += this.d.y;
+            // }
+            ctx.beginPath();
+            ctx.arc(this.pos.x, this.pos.y, circlesize, 0, Math.PI*2);
+            ctx.stroke();
+
+            // ctx.fillText(Math.round(this.angle), this.pos.x, this.pos.y);
+            // ctx.fillText(Math.round(this.anglebtwnvector), this.pos.x, this.pos.y);
+            this.dir = xyarrayminus(this.pos, this.oldpos);
+            this.oldpos = this.pos;
+        };
+
+        circles.push(circleobj);
+    }
+}
+setCircles();
+document.addEventListener('mousemove', function(e){
+    circles[0].pos = {x:e.clientX, y:e.clientY};
+    // mousepos = {x:e.clientX, y:e.clientY};
+});
+function drawCircles(){
+    for (var i=0; i< circles.length; i++){
+        // for (var i2=0; i2< circles.length; i2++){
+        //     if(getDistance2(circles[i2].pos, circles[i].pos) < circlesize*2 && i != i2){
+        //         circles[i].pos.x -= (circles[i2].pos.x-circles[i].pos.x);
+        //         circles[i].pos.y -= (circles[i2].pos.y-circles[i].pos.y);
+        //     }
+        // }
+        
+        
+        
+        // circles[i].pos.x += ((Math.random()*2)-1)*1;
+        // circles[i].pos.y += ((Math.random()*2)-1)*1;
+
+        // circles[0].pos = pos;
+        // circles[circles.length-1].pos = pos;
+
+        
+        circles[i].func();
+        // circles[0].pos = mousepos;
+        if(circles[i].pos.x > canvas.width-circlesize){//collision on edges
+            circles[i].pos.x += (canvas.width-circlesize-circles[i].pos.x);
+        }else if(circles[i].pos.x < circlesize){
+            circles[i].pos.x += (circlesize-circles[i].pos.x);
+        }
+        if(circles[i].pos.y > canvas.height-circlesize){
+            circles[i].pos.y += (canvas.height-circlesize-circles[i].pos.y);
+        }else if(circles[i].pos.y < circlesize){
+            circles[i].pos.y += (circlesize-circles[i].pos.y);
+        }
+    }
+    // ctx.fillText(Math.round(
+    //     Math.abs(circles[2].angle-circles[1].angle)
+    // ), 10, 10);
+    // circles[0].pos = {x:Math.random()*canvas.width, y:Math.random()*canvas.height};
+    ctx.fillText(circles[0].dir.x, 0, 10);
+    ctx.fillText(circles[0].dir.y, 0, 20);
+    ctx.fillText(Math.round(circles[1].angle), 0, 30);
+    // ctx.fillText(Math.round(circles[1].actualangle), 0, 40);
+    ctx.fillText(circles[1].test, 0, 50);
+
+    ctx.beginPath();
+    ctx.moveTo(20, 50);
+    ctx.lineTo(20+circlesize*2, 50);
+    temppos = getXYfromAngle(20+circlesize*2, 50, -circles[1].test, circlesize*2);
+    ctx.lineTo(temppos.x, temppos.y);
+    ctx.stroke();
+}
+
+</script>

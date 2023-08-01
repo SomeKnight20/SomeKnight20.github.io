@@ -1,0 +1,197 @@
+<style>
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+</style>
+<script>
+window.onload = function(){
+var canvas = document.createElement("canvas");
+var ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+document.body.appendChild(canvas);
+
+function getDist(x1, y1, x2, y2){
+    return Math.hypot(x1 - x2, y1 - y2);
+}
+function getDist2(pos1, pos2){
+    return Math.hypot(pos1.x - pos2.x, pos1.y - pos2.y);
+}
+function getAngleDeg2(pos1, pos2){
+    return Math.atan2(pos1.y - pos2.y, pos1.x - pos2.x) * 180 / Math.PI;
+}
+function getXYfromAngle2(pos, angle, distance){//rads
+    return {x:distance*Math.cos(DegtoRad(angle))+pos.x, y:distance*Math.sin(DegtoRad(angle))+pos.y}
+}
+function DegtoRad(degrees){
+    return degrees * Math.PI / 180;
+}
+function RadtoDeg(radians){
+    return radians * 180 / Math.PI;
+}
+
+
+
+
+var id = 0;
+var circles = [];
+var amount = 1000;
+var size = 10;
+
+function addCircle() {
+    var circle = new Object();
+    circle["id"] = id;
+    circle["pos"] = {x:Math.random()*canvas.width,y:Math.random()*canvas.height};
+    circle["angle"] = 0;//deg
+    circle["main"] = null;//false or true
+    circle["parent"] = null;
+    circle["group"] = null;
+    circle["groupChildren"] = [];//needs main unit
+    circle["draw"] = function(){
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, size/2, 0, Math.PI*2);
+        if(this.parent == null){
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }else{
+            ctx.fill();
+
+            ctx.beginPath();
+            // ctx.lineWidth = size;
+            ctx.lineCap = 'round';
+            ctx.moveTo(this.pos.x, this.pos.y);
+            ctx.lineTo(circles[this.parent].pos.x, circles[this.parent].pos.y);
+            ctx.stroke();
+        }
+        
+    };
+    circle["movement"] = function(){
+        if(this.parent == null){
+            this.pos.x += Math.random()*2-1;
+            this.pos.y += Math.random()*2-1;
+        }else{
+            // this.angle += (Math.random()*2-1)*5;
+            this.pos = getXYfromAngle2(circles[this.parent].pos, this.angle, size);
+            // this.angle++;
+        }
+    };
+    circle["checkGroupMain"] = function(){
+        for (var i=0; i < circles.length; i++){
+            if(circles[i].group == this.group){
+                if(circles[i].main){
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    circle["convertGroup"] = function(id, id2){
+        for (var i=0; i < circles.length; i++){
+            if(circles[i].group == id){
+                circles[i].group = id2;
+            }
+        }
+    };
+    circle["checkGroupSize"] = function(){
+        groupSize = 0;
+        for (var i=0; i < circles.length; i++){
+            if(circles[i].group == this.group){
+                groupSize++;
+            }
+        }
+        return groupSize;
+    };
+    circle["getCaptured"] = function(id){
+        this.parent = circles[id].id;
+        this.angle = getAngleDeg2(this.pos, circles[id].pos);
+        this.main = false;
+        if(circles[id].parent == null){
+            this.group = this.parent;
+            circles[id].group = this.parent;
+            circles[id].main = true;
+        }else{
+            this.group = circles[id].group;
+        }
+
+        // if(circles[this.group].id != this.group && !circles[this.group].main){
+        //     // if(this.checkGroupMain(this.group)){
+        //     //     for (var i=0; i < circles.length; i++){
+        //     //         if(circles[i].group == this.group){
+
+        //     //         }
+        //     //     }
+        //     // }
+        // }
+    };
+    circle["function"] = function(){
+        if(this.id == 0){
+            ctx.fillText("g"+this.group+" p"+this.parent+" x"+Math.round(this.pos.x)+" y"+Math.round(this.pos.y), 10, 10);
+        }
+        this.movement();
+        if(this.parent == null){
+            for (var i=0; i < circles.length; i++){
+                if(getDist2(this.pos, circles[i].pos) < size && this.id != i && circles[i].parent != this.id && this.id != circles[i].group){
+                    if(circles[i].main){
+                        if(this.main){
+                            if(this.checkGroupSize(i) > this.checkGroupSize(this.id)){
+                                circles[i].getCaptured(this.id);
+                                circles[i].getCaptured(i, this.id);
+                            }else{
+                                this.getCaptured(i);
+                                this.convertGroup(this.id, i)
+                            }
+                        }else{
+                            circles[i].getCaptured(this.id);
+                        }
+                    }else{
+                        if(Math.round(Math.random())){
+                            this.getCaptured(i);
+                        }else{
+                            circles[i].getCaptured(this.id);
+                        }
+                    }
+                }
+            }
+        }
+        ctx.fillText(this.group, this.pos.x, this.pos.y-10);
+        if(this.main){
+            ctx.fillText(this.main, this.pos.x, this.pos.y-5);
+        }
+        
+
+        if(this.pos.x > canvas.width-size/2){//border collision
+            this.pos.x = canvas.width-size/2;
+        }else if(this.pos.x < 0+size/2){
+            this.pos.x = 0+size/2;
+        }
+        if(this.pos.y > canvas.height-size/2){
+            this.pos.y = canvas.height-size/2;
+        }else if(this.pos.y < 0+size/2){
+            this.pos.y = 0+size/2;
+        }
+    };
+    
+    circles.push(circle);
+    id++
+}
+for (var i = 0; i < amount; i++) {
+    addCircle();
+}
+
+
+
+function drawCanvas(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i=0; i < circles.length; i++){
+        circles[i].draw();
+        circles[i].function();
+    }
+}
+drawCanvas();
+setInterval(function() {
+    drawCanvas();
+}, 60/10);
+}
+</script>

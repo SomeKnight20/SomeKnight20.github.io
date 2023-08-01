@@ -1,0 +1,192 @@
+<style>
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+</style>
+<script>
+window.onload = function(){
+var canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+document.body.appendChild(canvas);
+
+
+
+const mazeBounds = {w:31,h:31};
+const cellSize = 20;
+// const mazeBounds = {w:canvas.width/cellSize,h:canvas.height/cellSize};
+ctx.lineCap = 'square';
+ctx.lineWidth = cellSize-2;
+
+const MOVEMENT = {UP:{x:0,y:-1},DOWN:{x:0,y:1},LEFT:{x:-1,y:0},RIGHT:{x:1,y:0}};
+const DICESIDES = [MOVEMENT.DOWN,MOVEMENT.RIGHT,MOVEMENT.UP,MOVEMENT.LEFT];
+
+//give ability to make more walkers
+// walkers = [];
+
+walkerPos = {x:0,y:0};
+walkerOldPos = walkerPos;
+walkPoints = [];
+failedRolls = 0;
+failedLoop = 0;
+sanity = true;
+iteration = 0;
+backpedals = 0;
+branches = 0;
+function rollDice(){
+    if(failedRolls < 100){
+        failedRolls++
+        // return Math.floor(iteration/mazeBounds.w)%5;
+        // return iteration%5;
+        // return failedRolls%5;
+        // return Math.round(Math.random()*4);
+        availablePaths = [];
+        for (var i=0; i < DICESIDES.length; i++){//randomly picks available paths
+            if(checks(DICESIDES[i])){
+                availablePaths.push(i+1);
+            }
+        }
+        return availablePaths[Math.floor(Math.random() * availablePaths.length)]
+    }else{
+        sanity = false;
+        console.log("Too many failed rolls");
+    }
+}
+function moveWalker(dir){
+    walkerOldPos = {x:walkerPos.x, y:walkerPos.y}
+    walkerPos = {x:walkerPos.x+dir.x, y:walkerPos.y+dir.y}
+}
+function checkIfWillBeOOB(dir){
+    if(walkerPos.x+dir.x < 0 || walkerPos.x+dir.x > mazeBounds.w-1){
+        return true
+    }else if(walkerPos.y+dir.y < 0 || walkerPos.y+dir.y > mazeBounds.h-1){
+        return true
+    }
+    return false
+}
+function checkIfPathExists(dir){
+    tempPos = {x:walkerPos.x+dir.x,y:walkerPos.y+dir.y}
+    if(walkPoints.find(e => e.x == tempPos.x && e.y == tempPos.y)){
+        return true
+    }
+    return false
+}
+function checkIfCanMove(){
+    if(
+        (walkPoints.find(e => e.x == walkerPos.x+1 && e.y == walkerPos.y) || checkIfWillBeOOB(MOVEMENT.RIGHT)) &&
+        (walkPoints.find(e => e.x == walkerPos.x-1 && e.y == walkerPos.y) || checkIfWillBeOOB(MOVEMENT.LEFT)) &&
+        (walkPoints.find(e => e.x == walkerPos.x && e.y == walkerPos.y+1) || checkIfWillBeOOB(MOVEMENT.DOWN)) &&
+        (walkPoints.find(e => e.x == walkerPos.x && e.y == walkerPos.y-1) || checkIfWillBeOOB(MOVEMENT.UP))
+    ){
+        return false
+    }
+    return true
+}
+function checks(dir){
+    return !checkIfWillBeOOB(dir) && !checkIfPathExists(dir);
+}
+function tracer(){
+    if(walkerPos != null){
+        ctx.fillStyle = "red";
+        ctx.fillRect(walkerPos.x*cellSize+cellSize/4,walkerPos.y*cellSize+cellSize/4, cellSize/2,cellSize/2);
+        ctx.fillStyle = "black";
+        ctx.fillRect(walkerOldPos.x*cellSize+cellSize/5,walkerOldPos.y*cellSize+cellSize/5, cellSize/1.5,cellSize/1.5);
+        // ctx.fillStyle = "white";
+        // ctx.textBaseline = "middle";
+        // ctx.textAlign = "center";
+        // ctx.fillText(failedRolls, walkerPos.x*cellSize+cellSize/2, walkerPos.y*cellSize+cellSize/2);
+    }
+}
+    
+function backpedal(){
+    // if(backpedals > walkPoints.length-1){
+    //     console.log("backpedal limit reached", branches);
+    //     sanity = false;
+    // }
+    walkerOldPos = walkerPos;
+    // walkerPos = walkPoints[walkPoints.length-1-backpedals];//goes back in the array to pick a valid path to branch from
+    walkerPos = walkPoints.find(e => e.x == walkerOldPos.x && e.y == walkerOldPos.y).prevPos;
+    // backpedals++;
+    // walkerPos = walkPoints[Math.floor(Math.random() * walkPoints.length)];//picks random valid path to branch from
+}
+function savePos(){
+    var point = new Object();
+    point["x"] = walkerPos.x;
+    point["y"] = walkerPos.y;
+    point["prevPos"] = walkerOldPos;
+    if(backpedals == 0){
+        point["jump"] = false;
+    }else{
+        point["jump"] = true;
+        branches++;
+    }
+    walkPoints.push(point);
+    failedRolls = 0;
+    failedLoop = 0;
+    backpedals = 0;
+
+    ctx.beginPath();
+    ctx.moveTo(walkerOldPos.x*cellSize+cellSize/2, walkerOldPos.y*cellSize+cellSize/2);
+    ctx.lineTo(walkerPos.x*cellSize+cellSize/2, walkerPos.y*cellSize+cellSize/2);
+    ctx.stroke();
+}
+savePos();
+
+
+
+function drawCanvas(){
+    if(sanity){
+        failedLoop++;
+        if(failedLoop > 10000){
+            sanity = false;
+            console.log("Loop sanity check");
+        }
+        if(walkPoints.length >= mazeBounds.w*mazeBounds.h){
+            sanity = false;
+            console.log("Path limit reached", walkPoints.length);
+        }
+        if(checkIfCanMove()){
+            switch(rollDice()){
+                case 1:
+                if(checks(MOVEMENT.DOWN)){
+                    moveWalker(MOVEMENT.DOWN);
+                    savePos();
+                }
+                break
+                case 2:
+                if(checks(MOVEMENT.RIGHT)){
+                    moveWalker(MOVEMENT.RIGHT);
+                    savePos();
+                }
+                break
+                case 3:
+                if(checks(MOVEMENT.UP)){
+                    moveWalker(MOVEMENT.UP);
+                    savePos();
+                }
+                break
+                case 4:
+                if(checks(MOVEMENT.LEFT)){
+                    moveWalker(MOVEMENT.LEFT);
+                    savePos();
+                }
+                break
+            }
+        }else{
+            // sanity = false;
+            // console.log("Hit dead end");
+            backpedal();
+        }
+        tracer();
+        iteration++;
+    }
+}
+
+setInterval(function() {
+    drawCanvas();
+}, 60/60);
+}
+</script>

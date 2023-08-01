@@ -1,0 +1,109 @@
+<style>
+    #sortbuttons {
+        user-select: none;
+    }
+    table, th, td {
+        border-style: solid;
+        border-width: 1px;
+        border-spacing:0;
+        border-collapse: collapse;
+    }
+</style>
+<form id="form">
+    <input type="text" name="search">
+    <!-- <input type="submit" value="search"> -->
+</form>
+<table cellspacing="0">
+    <tr id="sortbuttons">
+        <th onclick='sort("id")' id="id">id</th>
+        <th onclick='sort("name")' id="name">name</th>
+        <th onclick='sort("power")' id="power">power</th>
+        <th onclick='sort("misc")' id="misc">misc</th>
+    </tr>
+    <tbody id="sort">
+    </tbody>
+</table>
+<script>
+    let lists = [];
+    let templist = lists;
+    let amount = 20;
+
+    function makeid(length){
+        var result = '';
+        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (var i=0; i<length; i++){
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        return result;
+    }
+
+    for (var i=0; i<amount; i++){
+        var list = new Object();
+        list["id"] = i+1;
+        list["name"] = makeid(10);
+        list["power"] = Math.round(Math.random()*1000);
+        list["misc"] = makeid(10);
+
+        lists.push(list);
+    }
+
+    function update(a){
+        document.getElementById("sort").innerHTML = "";
+        for (var i=0; i<a.length; i++){
+            document.getElementById("sort").innerHTML += 
+            "<tr><td>"+a[i].id+
+            "</td><td>"+a[i].name+
+            "</td><td>"+a[i].power+
+            "</td><td>"+a[i].misc+
+            "</td></tr>";
+        }
+    }
+    update(lists)
+
+    function sort(type){
+        update(templist.sort(dynamicSort(type)));
+    }
+
+    function search(e){
+        e.preventDefault();
+        data = new FormData(document.querySelector('form'));
+        query = data.get("search");
+        templist = lists.filter(o => o.name.includes(query));
+        update(templist);
+    }
+    form.addEventListener('submit', e => e.preventDefault());
+    form.addEventListener('input', search);
+    
+    var sortOrder = 1;
+    var tempProp = "";
+    function dynamicSort(property){
+        // var sortOrder = 1;
+
+        // if(property[0] === "-") {
+        //     sortOrder = -1;
+        //     property = property.substr(1);
+        // }
+        if(tempProp == property){
+            sortOrder = -sortOrder;
+        }else{
+            sortOrder = 1;
+        }
+        tempProp = property;
+
+        return function (a,b){
+            if(!Number.isInteger(a[property]) && !Number.isInteger(b[property])){
+                if(sortOrder == -1){
+                    return b[property].localeCompare(a[property]);
+                }else{
+                    return a[property].localeCompare(b[property]);
+                }
+            }else{
+                if(sortOrder == -1){
+                    return b[property]-a[property];
+                }else{
+                    return a[property]-b[property];
+                }
+            }
+        }
+    }
+</script>

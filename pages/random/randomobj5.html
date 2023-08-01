@@ -1,0 +1,158 @@
+<style>
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+</style>
+<script>
+window.onload = function(){
+var canvas = document.createElement("canvas");
+var ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+document.body.appendChild(canvas);
+
+function getDist(x1, y1, x2, y2){
+    return Math.hypot(x1 - x2, y1 - y2);
+}
+function getDist2(pos1, pos2){
+    return Math.hypot(pos1.x - pos2.x, pos1.y - pos2.y);
+}
+function getAngleDeg2(pos1, pos2){
+    return Math.atan2(pos1.y - pos2.y, pos1.x - pos2.x) * 180 / Math.PI;
+}
+function getXYfromAngle2(pos, angle, distance){//rads
+    return {x:distance*Math.cos(DegtoRad(angle))+pos.x, y:distance*Math.sin(DegtoRad(angle))+pos.y}
+}
+function DegtoRad(degrees){
+    return degrees * Math.PI / 180;
+}
+function RadtoDeg(radians){
+    return radians * 180 / Math.PI;
+}
+function Average(arr){
+    return arr.reduce((a,b) => a + b, 0) / arr.length
+}
+function AverageXY(arr){
+    return {x:arr.reduce((a,b) => a.x + b.x, 0) / arr.length,y:arr.reduce((a,b) => a.y + b.y, 0) / arr.length}
+}
+function AverageXY2(arr){
+    return {x:arr.reduce((a,b) => a + b.pos.x, 0) / arr.length, y:arr.reduce((a,b) => a + b.pos.y, 0) / arr.length}
+}
+// arr = [20,10,5,10]
+// console.log(Average(arr));
+
+
+
+var id = 0;
+var circles = [];
+var amount = 100;
+var baseSize = 20;
+var baseSpeed = 1;
+
+function addCircle() {
+    var circle = new Object();
+    circle["id"] = id;
+    circle["pos"] = {x:Math.random()*canvas.width,y:Math.random()*canvas.height};
+    circle["size"] = baseSize;
+    circle["speed"] = baseSpeed;
+    circle["draw"] = function(){
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.size/2, 0, Math.PI*2);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    };
+    circle["closestUnit"] = function(){
+        units = [...circles];
+        units = units.sort((a,b)=>{
+            return getDist2(this.pos, a.pos) - getDist2(this.pos, b.pos);
+        });
+        if(units.length > 1){
+            return units[1];
+        }
+        return false;
+    };
+    circle["moveTowards"] = function(pos){
+        this.pos.x -= ((this.pos.x-pos.x)/getDist2(this.pos, pos))*this.speed;
+        this.pos.y -= ((this.pos.y-pos.y)/getDist2(this.pos, pos))*this.speed;
+    };
+    circle["moveAway"] = function(pos){
+        this.pos.x += ((this.pos.x-pos.x)/getDist2(this.pos, pos))*this.speed;
+        this.pos.y += ((this.pos.y-pos.y)/getDist2(this.pos, pos))*this.speed;
+    };
+    circle["movement"] = function(){
+        this.pos.x += (Math.random()*2-1)*this.speed;
+        this.pos.y += (Math.random()*2-1)*this.speed;
+    };
+    circle["function"] = function(i2){
+        this.movement();
+        if(this.closestUnit() != false){
+            if(this.closestUnit().size <= this.size){
+                this.moveTowards(this.closestUnit().pos);
+            }else{
+                this.moveAway(this.closestUnit().pos);
+            }
+        }
+        
+        
+        this.draw();
+        for (var i=0; i < circles.length; i++){
+            if(getDist2(this.pos, circles[i].pos) < this.size/2+circles[i].size/2 && this.id != circles[i].id){
+                if(this.size >= circles[i].size){
+                    this.size += Math.floor(circles[i].size/2);
+                    // this.speed = baseSpeed / ((this.size/baseSize)/2);
+                    circles.splice(i, 1);
+                }
+            }
+        }
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "center";
+        ctx.fillText(this.id, this.pos.x, this.pos.y);
+        ctx.textBaseline = "top";
+        ctx.textAlign = "left";
+        ctx.fillText(this.id+" "+this.size, 0, 10+i2*8);
+        
+
+        // if(this.pos.x > canvas.width-this.size/2){//border collision
+        //     this.pos.x = canvas.width-this.size/2;
+        // }else if(this.pos.x < 0+this.size/2){
+        //     this.pos.x = 0+this.size/2;
+        // }
+        // if(this.pos.y > canvas.height-this.size/2){
+        //     this.pos.y = canvas.height-this.size/2;
+        // }else if(this.pos.y < 0+this.size/2){
+        //     this.pos.y = 0+this.size/2;
+        // }
+        if(this.pos.x > canvas.width){//border collision
+            this.pos.x = canvas.width;
+        }else if(this.pos.x < 0){
+            this.pos.x = 0;
+        }
+        if(this.pos.y > canvas.height){
+            this.pos.y = canvas.height;
+        }else if(this.pos.y < 0){
+            this.pos.y = 0;
+        }
+    };
+    
+    circles.push(circle);
+    id++
+}
+for (var i = 0; i < amount; i++) {
+    addCircle();
+}
+
+function drawCanvas(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i=0; i < circles.length; i++){
+        circles[i].function(i);
+    }
+    ctx.fillText(circles.length, 0, 0);
+}
+drawCanvas();
+setInterval(function() {
+    drawCanvas();
+}, 60/10);
+}
+</script>

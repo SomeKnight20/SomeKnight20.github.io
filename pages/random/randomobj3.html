@@ -1,0 +1,147 @@
+<style>
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<body>
+<canvas id="canvas" width="500" height="500"></canvas>
+</body>
+<script>
+$(window).resize(function(){
+    ctx.canvas.width  = window.innerWidth;
+    ctx.canvas.height = window.innerHeight;
+});
+function getDistance(x1, y1, x2, y2){
+    return Math.hypot(x1 - x2, y1 - y2);
+}
+function getAngleRad(x1, y1, x2, y2){
+    return Math.atan2(y1 - y2, x1 - x2);
+}
+function getAngleDeg(x1, y1, x2, y2){
+    return Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
+}
+function DegtoRad(degrees){
+    return degrees * Math.PI / 180;
+}
+function RadtoDeg(radians){
+    return radians * 180 / Math.PI;
+}
+function getXYfromAngle(x, y, angle, distance){//rads
+    return {x:distance*Math.cos(DegtoRad(angle))+x, y:distance*Math.sin(DegtoRad(angle))+y}
+}
+
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+ctx.canvas.width  = window.innerWidth;
+ctx.canvas.height = window.innerHeight;
+ctx.fillStyle = "black";
+
+window.requestAnimationFrame(gameLoop);
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawCircles();
+    window.requestAnimationFrame(gameLoop);
+}
+
+
+let pos = {x: canvas.width/2, y: canvas.height/2};
+let circles = [];
+let amount = 600;
+let circlesize = 10; //2
+function setCircles() {
+    for (var i = 0; i < amount; i++) {
+        var circleobj = new Object();
+        circleobj["x"] = Math.random()*canvas.width;
+        circleobj["y"] = Math.random()*canvas.height;
+        circleobj["type"] = Math.round(Math.random()*2);
+        if(circleobj["type"] == 0){
+            circleobj["color"] = "rgba(255, 0, 0, 0.33)";
+        }else if(circleobj["type"] == 1){
+            circleobj["color"] = "rgba(0, 255, 0, 0.33)";
+        }else if(circleobj["type"] == 2){
+            circleobj["color"] = "rgba(0, 0, 255, 0.33)";
+        }
+        
+        circles.push(circleobj);
+    }
+}
+setCircles();
+function addKeyCircle(key) {
+    var circleobj = new Object();
+    circleobj["x"] = circles[key].x;
+    circleobj["y"] = circles[key].y;
+    circles.push(circleobj);
+}
+function removeCircle(times) {
+    for (var i=0; i< times; i++){
+        circles.pop();
+    }
+}
+function removeKeyCircle(key) {
+    circles.splice(key, 1);
+}
+function drawCircles(){
+    for (var i=0; i< circles.length; i++){
+        // circles[i].color = "rgba(0, 0, 0, 0.30)";
+        for (var i2=0; i2< circles.length; i2++){
+            if(getDistance(circles[i2].x, circles[i2].y, circles[i].x, circles[i].y) < circlesize*4 && i != i2){
+                if(circles[i].type == 0 && circles[i2].type !== 0 && circles[i2].type == 2){
+                    circles[i].x += (circles[i2].x-circles[i].x)/50;
+                    circles[i].y += (circles[i2].y-circles[i].y)/50;
+                }
+                if(circles[i].type == 1 && circles[i2].type !== 1 && circles[i2].type == 0){
+                    circles[i].x += (circles[i2].x-circles[i].x)/50;
+                    circles[i].y += (circles[i2].y-circles[i].y)/50;
+                }
+                if(circles[i].type == 2 && circles[i2].type !== 2 && circles[i2].type == 1){
+                    circles[i].x += (circles[i2].x-circles[i].x)/50;
+                    circles[i].y += (circles[i2].y-circles[i].y)/50;
+                }
+                
+                if(getDistance(circles[i2].x, circles[i2].y, circles[i].x, circles[i].y) < circlesize*3){
+                    if(circles[i].type == 0 && circles[i2].type !== 0 && circles[i2].type == 1){
+                        circles[i].x -= (circles[i2].x-circles[i].x)/50;
+                        circles[i].y -= (circles[i2].y-circles[i].y)/50;
+                    }
+                    if(circles[i].type == 1 && circles[i2].type !== 1 && circles[i2].type == 2){
+                        circles[i].x -= (circles[i2].x-circles[i].x)/50;
+                        circles[i].y -= (circles[i2].y-circles[i].y)/50;
+                    }
+                    if(circles[i].type == 2 && circles[i2].type !== 2 && circles[i2].type == 0){
+                        circles[i].x -= (circles[i2].x-circles[i].x)/50;
+                        circles[i].y -= (circles[i2].y-circles[i].y)/50;
+                    }
+                }
+                
+                if(getDistance(circles[i2].x, circles[i2].y, circles[i].x, circles[i].y) < circlesize*2){
+                    circles[i].x -= (circles[i2].x-circles[i].x)/25;
+                    circles[i].y -= (circles[i2].y-circles[i].y)/25;
+                }
+            }
+        }
+        ctx.fillText(circles[i].type, circles[i].x, circles[i].y);
+        ctx.fillStyle = circles[i].color;
+        ctx.beginPath();
+        ctx.arc(circles[i].x, circles[i].y, circlesize, 0, Math.PI*2);
+        ctx.fill();
+        
+        // circles[i].x += ((Math.random()*2)-1)*1;
+        // circles[i].y += ((Math.random()*2)-1)*1;
+
+        if(circles[i].x > canvas.width-circlesize){//collision on edges
+            circles[i].x += (canvas.width-circlesize-circles[i].x);
+        }else if(circles[i].x < circlesize){
+            circles[i].x += (circlesize-circles[i].x);
+        }
+        if(circles[i].y > canvas.height-circlesize){
+            circles[i].y += (canvas.height-circlesize-circles[i].y);
+        }else if(circles[i].y < circlesize){
+            circles[i].y += (circlesize-circles[i].y);
+        }
+    }
+}
+</script>

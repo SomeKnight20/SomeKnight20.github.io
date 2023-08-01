@@ -1,0 +1,103 @@
+<style>
+canvas {
+    /* position: absolute;
+    top: 0;
+    left: 0; */
+    border-color: rgb(44, 44, 44);
+    border-style: solid;
+}
+body {
+    background-color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+</style>
+<script>
+window.onload = function(){
+const times = [];
+let fps;
+function refreshLoop() {
+  window.requestAnimationFrame(() => {
+    const now = performance.now();
+    while (times.length > 0 && times[0] <= now - 1000) {
+      times.shift();
+    }
+    times.push(now);
+    fps = times.length;
+    refreshLoop();
+  });
+}
+refreshLoop();
+
+
+var frame = 0;
+const cellSize = 2;
+const imgBounds = {w:400,h:400};
+
+var canvas = document.createElement("canvas");
+var ctx = canvas.getContext("2d");
+canvas.width = imgBounds.w*cellSize;
+canvas.height = imgBounds.h*cellSize+10;
+document.body.appendChild(canvas);
+
+var cells = [];
+
+function addCell(x, y){
+    var cell = new Object();
+    cell["pos"] = {x:x,y:y};
+    cells.push(cell);
+}
+
+
+function checkIfCellExists(pos){
+    if(cells.find(e => e.pos.x == pos.x && e.pos.y == pos.y)){
+        return true
+    }
+    return false
+}
+
+const MOVEMENT = {N:{x:0,y:-1},NE:{x:1,y:-1},E:{x:1,y:0},SE:{x:1,y:1},S:{x:0,y:1},SW:{x:-1,y:1},W:{x:-1,y:0},NW:{x:-1,y:-1}};
+const MOVEMENTARR = [MOVEMENT.N,MOVEMENT.NE,MOVEMENT.E,MOVEMENT.SE,MOVEMENT.S,MOVEMENT.SW,MOVEMENT.W,MOVEMENT.NW];
+function drawCells(){
+    for (var i=0; i < cells.length; i++){
+        ctx.fillStyle = "white";
+        ctx.fillRect(cells[i].pos.x*cellSize, cells[i].pos.y*cellSize, cellSize, cellSize);
+        if(cells[i].pos.x < imgBounds.w && cells[i].pos.y < imgBounds.h
+        && cells[i].pos.x > 0 && cells[i].pos.y > 0){
+            if(!checkIfCellExists({x:cells[i].pos.x, y:cells[i].pos.y + 1})){
+                cells[i].pos.y++;
+            }else if(!checkIfCellExists({x:cells[i].pos.x+1, y:cells[i].pos.y+1})){
+                cells[i].pos.x++;
+                cells[i].pos.y++;
+            }else if(!checkIfCellExists({x:cells[i].pos.x-1, y:cells[i].pos.y+1})){
+                cells[i].pos.x--;
+                cells[i].pos.y++;
+            }
+        }
+    }
+}
+
+
+ctx.font = "10px Arial";
+ctx.textBaseline = "top";
+function drawCanvas(){
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    addCell(Math.round(imgBounds.w/2), 1);
+    drawCells();
+    
+    ctx.fillStyle = "white";
+    ctx.textAlign = "left";
+    ctx.fillText(imgBounds.w+"x"+imgBounds.h+" Amount:"+cells.length+" Frame:"+frame, 0, imgBounds.h*cellSize);
+    ctx.textAlign = "right";
+    ctx.fillText(fps+"fps", imgBounds.w*cellSize, imgBounds.h*cellSize);
+    frame++;
+}
+drawCanvas();
+setInterval(function() {
+    drawCanvas();
+}, 10);
+}
+</script>
