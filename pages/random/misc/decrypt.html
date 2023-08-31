@@ -1,0 +1,70 @@
+<style>
+body{
+    background-color: black;
+}
+#container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: fit-content;
+    border-radius: 20px;
+    background-color: gray;
+    padding: 10px;
+    text-align: center;
+
+    width: 400px;
+}
+#decrypted{
+    border-radius: 10px;
+    padding: 10px;
+    word-break: break-word;
+    background-color: black;
+    text-align: left;
+    color: white;
+}
+</style>
+<title>decrypt</title>
+<div id="container">
+    <form id="form">
+        <input type="text" name="key" placeholder="key" value="" required><br/>
+        <input type="text" name="words" placeholder="text" value="" required><br/>
+        <input type="submit" value="decrypt">
+    </form>
+    <div id="decrypted">
+    </div>
+</div>
+<script>
+function getForm(e){
+    e.preventDefault();
+    data = new FormData(document.querySelector('form'));
+    encryptKey = data.get("key");
+    encryptWords = data.get("words");
+    startTyping(decryptWord(encryptKey, encryptWords));
+}
+form.addEventListener('submit', e => getForm(e));
+function decryptWord(key, word){
+    result = "";
+    word = word.match(/.{1,2}/g);
+    for (var i=0; i<word.length; i++){
+        result += String.fromCharCode(parseInt(word[i], 36)-key[i%key.length].charCodeAt(0)-key.length);
+    }
+    return result
+}
+
+function startTyping(text) {
+    document.getElementById("decrypted").innerHTML = "";
+    iteration = 0;
+    function typingLoop(){
+        setTimeout(function() {
+            if(iteration >= text.length){
+                return
+            }
+            document.getElementById("decrypted").innerHTML += text[iteration];
+            iteration++;
+            typingLoop();
+        }, 20);
+    }
+    typingLoop();
+}
+</script>

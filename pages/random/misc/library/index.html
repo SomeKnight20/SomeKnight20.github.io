@@ -1,0 +1,70 @@
+<style>
+body {
+    word-break: break-word;
+}
+#container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: fit-content;
+    padding: 10px;
+    text-align: center;
+}
+#pageSearch {
+    width: 60px;
+}
+#books{
+    word-break: break-word;
+    text-align: left;
+}
+</style>
+<title>Library</title>
+<div id="container">
+    <form id="form">
+        <input id="pageSearch" type="number" name="aisle" value="0">
+        <input type="text" name="key" required>
+        <input type="submit" value="search">
+    </form><br>
+    <ul id="books"></ul>
+</div>
+<script src="books.js"></script>
+<script>
+const element = document.getElementById("books");
+function getForm(e){
+    e.preventDefault();
+    data = new FormData(document.querySelector('form'));
+    libraryAisle = data.get("aisle");
+    libraryKey = data.get("key");
+    getBooks();
+}
+form.addEventListener('submit', e => getForm(e));
+
+function getBooks(){
+    document.getElementById("books").innerHTML = "";
+    for (var i=0; i<BOOKS.length; i++){
+        if(BOOKS[i].aisle == libraryAisle){
+            // document.getElementById("books").innerHTML += "<li oclick='openBook("+i+")'>"+decryptWord(libraryKey, BOOKS[i].title)+"</li>";
+            listBook = document.createElement("li");
+            listBook.appendChild(document.createTextNode(decryptWord(libraryKey, BOOKS[i].title)));
+            listBook.setAttribute("onclick", "openBook("+i+")");
+            
+            element.appendChild(listBook);
+        }
+    }
+}
+function openBook(id){
+    document.getElementById("books").innerHTML = "";
+    document.getElementById("books").innerHTML = "<h1>"+decryptWord(libraryKey, BOOKS[id].title)+"</h1>"+decryptWord(libraryKey, BOOKS[id].content);
+}
+
+function decryptWord(key, word){
+    result = "";
+    word = word.match(/.{1,2}/g);
+    for (var i=0; i<word.length; i++){
+        part = String.fromCharCode(parseInt(word[i], 36)-key[i%key.length].charCodeAt(0)-key.length);
+        result += part;
+    }
+    return result
+}
+</script>

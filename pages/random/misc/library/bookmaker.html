@@ -1,0 +1,50 @@
+<style>
+#encrypted, #decrypted{
+    /* width: 1000px; */
+    word-break: break-word;
+}
+</style>
+<form id="form">
+    <input type="text" name="key" placeholder="key" value="amogus"><br/>
+    <input type="text" name="title" placeholder="title" value=""><br/>
+    <textarea name="words" rows="5" cols="80"></textarea>
+</form>
+<h2>encrypted</h2>
+<div id="encrypted"></div>
+<h2>decrypted</h2>
+<div id="decrypted"></div>
+<script>
+function getForm(){
+    data = new FormData(document.querySelector('form'));
+    bookKey = data.get("key");
+    bookTitle = data.get("title");
+    bookWords = data.get("words");
+    document.getElementById("encrypted").innerHTML = "<h3>"+encryptWord(bookKey, bookTitle)+"</h3>"+encryptWord(bookKey, bookWords);
+    document.getElementById("decrypted").innerHTML = "<h3>"+decryptWord(bookKey, bookTitle)+"</h3>"+decryptWord(bookKey, bookWords);
+}
+getForm();
+form.addEventListener('submit', e => e.preventDefault());
+form.addEventListener('input', getForm);
+
+
+function encryptWord(key, word){
+    result = "";
+    for (var i=0; i<word.length; i++){
+        part = (word[i].charCodeAt(0)+key[i%key.length].charCodeAt(0)+key.length).toString(36).padStart(2,'0');
+        result += part;
+    }
+    return result
+}
+function decryptWord(key, word){
+    if(word == ""){
+        return word;
+    }
+    result = "";
+    word = word.match(/.{1,2}/g);
+    for (var i=0; i<word.length; i++){
+        part = String.fromCharCode(parseInt(word[i], 36)-key[i%key.length].charCodeAt(0)-key.length);
+        result += part;
+    }
+    return result
+}
+</script>
