@@ -3,11 +3,23 @@
     /* width: 1000px; */
     word-break: break-word;
 }
+#encryptType {
+    width: 50px;
+}
 </style>
 <form id="form">
+    <input id="encryptType" type="number" name="encryptType" value="7">
     <input type="text" name="key" placeholder="key" value="amogus"><br/>
-    <textarea name="words" rows="5" cols="80">Did you know that the critically acclaimed MMORPG Final Fantasy XIV has a free trial, and includes the entirety of A Realm Reborn AND the award-winning Heavensward expansion up to level 60 with no restrictions on playtime? Sign up, and enjoy Eorzea today!</textarea>
+    <textarea name="words" rows="5" cols="80">Did you know that the critically acclaimed MMORPG Final Fantasy XIV has a free trial, and includes the entirety of A Realm Reborn AND the award-winning Heavensward expansion up to level 60 with no restrictions on playtime? Sign up, and enjoy Eorzea today!</textarea><br/>
+    <input type="checkbox" id="testing" name="testing" checked>
+    <label for="testing">testing</label><br/>
+    <input type="checkbox" id="exp" name="exp">
+    <label for="testing">experimental</label><br/>
 </form>
+<div>
+    <b>Info</b>
+    <div id="info"></div>
+</div>
 <h2>encrypted</h2>
 <div id="encrypted">
 </div>
@@ -18,13 +30,30 @@
 const ORDER = `abcdefghijklmnopqrstuvwxyzäöåABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÅ0123456789,.!?:;- "'()/><|[]{}#@&+-_`;
 const SYMBOLS = ORDER.split("");
 // SYMBOLS.sort(() => Math.random() - 0.5);
+encryptType = 4;// 4
+seqmentSize = 2;// 2
+experimentalType = false;// 2
+function percentageIncrease(a, b){
+    return (b-a)/a*100;
+}
 function getForm(){
     // e.preventDefault();
     data = new FormData(document.querySelector('form'));
+    experimentalType = data.get("exp");
+    if(data.get("testing")){
+        encryptType = "testing";
+    }else{
+        encryptType = parseInt(data.get("encryptType"));
+    }
     encryptKey = data.get("key");
     encryptWords = data.get("words");
     document.getElementById("encrypted").innerHTML = encryptWord(encryptKey, encryptWords);
     document.getElementById("decrypted").innerHTML = decryptWord(encryptKey, encryptWords);
+    document.getElementById("info").innerHTML = "seqmentSize:"+seqmentSize+"<br>"+
+                                                "wordSize:"+encryptWords.length+"<br>"+
+                                                "encryptWordSize:"+document.getElementById("encrypted").innerHTML.length+"<br>"+
+                                                "encryptWordIncrease:"+Math.round(percentageIncrease(encryptWords.length, document.getElementById("encrypted").innerHTML.length)*100)/100+"%<br>"+
+                                                "decryptwordSize:"+document.getElementById("decrypted").innerHTML.length+"<br>";
 }
 getForm();
 form.addEventListener('submit', e => e.preventDefault());
@@ -53,53 +82,77 @@ form.addEventListener('input', getForm);
 // console.log(("ꀀ").charCodeAt(0));
 // console.log(String.fromCharCode(10000000000000));
 
+// text = "a\na";
+// console.log("a"+String.fromCharCode(text.charCodeAt(1))+"a");
 
 function encryptWord(key, word){
     result = "";
-    for (var i=0; i<word.length; i++){
-        // part = (SYMBOLS.findIndex((e) => e == word[i])+key.length+SYMBOLS.findIndex((e) => e == key[i%key.length])).toString().padStart(3,'0');//1
-        // part = (SYMBOLS.findIndex((e) => e == word[i])+key.length+SYMBOLS.findIndex((e) => e == key[i%key.length])+word.length).toString().padStart(3,'0');//2
-        // part = (SYMBOLS.findIndex((e) => e == word[i])+key.length+SYMBOLS.findIndex((e) => e == key[i%key.length])+word.length).toString(36).padStart(3,'0');//3//hex
-        // part = (SYMBOLS.findIndex((e) => e == word[i])+key.length+SYMBOLS.findIndex((e) => e == key[i%key.length])).toString(16).padStart(3,'0');//4//hex
-        part = (word[i].charCodeAt(0)+key[i%key.length].charCodeAt(0)+key.length).toString(36).padStart(2,'0');//5//hex
-        // part = String.fromCharCode(word[i].charCodeAt(0)+key.length+key[i%key.length].charCodeAt(0)+word.length);//6
-        result += part;
+    if(experimentalType){
+        seqmentSize=2;
+        for (var i=0; i<word.length; i++){
+            part = (word[i].charCodeAt(0)+key[i%key.length].charCodeAt(0)+key.length+word.length).toString(36).padStart(2,'0');
+            result += part;
+        }
+        for (var i=0; i<key.length; i++){
+            part = (key[i].charCodeAt(0)+key.length+word.length).toString(36).padStart(2,'0');
+            result += part;
+        }
+    }else{
+        for (var i=0; i<word.length; i++){
+            switch(encryptType){
+                case 0:part = (SYMBOLS.findIndex((e) => e == word[i])+key.length+SYMBOLS.findIndex((e) => e == key[i%key.length])).toString().padStart(3,'0');seqmentSize=3;break
+                case 1:part = (SYMBOLS.findIndex((e) => e == word[i])+key.length+SYMBOLS.findIndex((e) => e == key[i%key.length])+word.length).toString().padStart(3,'0');seqmentSize=3;break
+                case 2:part = (SYMBOLS.findIndex((e) => e == word[i])+key.length+SYMBOLS.findIndex((e) => e == key[i%key.length])+word.length).toString(36).padStart(3,'0');seqmentSize=3;break//hex
+                case 3:part = (SYMBOLS.findIndex((e) => e == word[i])+key.length+SYMBOLS.findIndex((e) => e == key[i%key.length])).toString(16).padStart(3,'0');seqmentSize=3;break//hex
+                case 4:part = (word[i].charCodeAt(0)+key[i%key.length].charCodeAt(0)+key.length).toString(36).padStart(2,'0');seqmentSize=2;break//hex //default
+                case 5:part = String.fromCharCode(word[i].charCodeAt(0)+key.length+key[i%key.length].charCodeAt(0)+word.length);seqmentSize=1;break
+                case 6:part = (word[i].charCodeAt(0)).toString(36).padStart(2,'0');seqmentSize=2;break
+                case 7:part = (word[i].charCodeAt(0)+key[key.length-(i%key.length+1)].charCodeAt(0)+key[i%key.length].charCodeAt(0)).toString(36).padStart(2,'0');seqmentSize=2;break
+                case "testing":
+                    part = String.fromCharCode(word[i].charCodeAt(0)+key[key.length-(i%key.length+1)].charCodeAt(0)+key[i%key.length].charCodeAt(0)+i);
+                    seqmentSize=1;
+                break
+            }
+            result += part;
+        }
     }
-
-    // for (var i=0; i<word.length; i++){
-    //     part = (word[i].charCodeAt(0)+key[i%key.length].charCodeAt(0)+key.length+word.length).toString(36).padStart(2,'0');
-    //     result += part;
-    // }
-    // for (var i=0; i<key.length; i++){
-    //     part = (key[i].charCodeAt(0)+key.length+word.length).toString(36).padStart(2,'0');
-    //     result += part;
-    // }
     return result
 }
 function decryptWord(key, word){
-    if(word == ""){
+    if(word == "" || word == undefined){
         return word;
     }
     result = "";
-    word = word.match(/.{1,2}/g);
-    for (var i=0; i<word.length; i++){
-        // part = SYMBOLS[parseInt(word[i])-key.length-SYMBOLS.findIndex((e) => e == key[i%key.length])];//1
-        // part = SYMBOLS[parseInt(word[i])-key.length-SYMBOLS.findIndex((e) => e == key[i%key.length])-word.length];//2
-        // part = SYMBOLS[parseInt(word[i], 36)-key.length-SYMBOLS.findIndex((e) => e == key[i%key.length])-word.length];//3//hex
-        // part = SYMBOLS[parseInt(word[i], 16)-key.length-SYMBOLS.findIndex((e) => e == key[i%key.length])];//4//hex
-        part = String.fromCharCode(parseInt(word[i], 36)-key[i%key.length].charCodeAt(0)-key.length);//5//hex
-        // part = String.fromCharCode(word[i].charCodeAt(0)-key.length-key[i%key.length].charCodeAt(0)-word.length);//6
-        if(part != undefined){
+    reqString = new RegExp(".{1,"+seqmentSize+"}","g");
+    word = word.match(reqString);
+    // word = word.match(/.{1,2}/g);
+    if(experimentalType){
+        for (var i=0; i<word.length-key.length/2; i++){
+            part = String.fromCharCode(parseInt(word[i], 36)-key[i%key.length].charCodeAt(0)-key.length-(word.length-key.length));
             result += part;
-        }else{
-            result += "�";
+        }
+    }else{
+        for (var i=0; i<word.length; i++){
+            switch(encryptType){
+                case 0:part = SYMBOLS[parseInt(word[i])-key.length-SYMBOLS.findIndex((e) => e == key[i%key.length])];break
+                case 1:part = SYMBOLS[parseInt(word[i])-key.length-SYMBOLS.findIndex((e) => e == key[i%key.length])-word.length];break
+                case 2:part = SYMBOLS[parseInt(word[i], 36)-key.length-SYMBOLS.findIndex((e) => e == key[i%key.length])-word.length];break//hex
+                case 3:part = SYMBOLS[parseInt(word[i], 16)-key.length-SYMBOLS.findIndex((e) => e == key[i%key.length])];break//hex
+                case 4:part = String.fromCharCode(parseInt(word[i], 36)-key[i%key.length].charCodeAt(0)-key.length);break//hex //default
+                case 5:part = String.fromCharCode(word[i].charCodeAt(0)-key.length-key[i%key.length].charCodeAt(0)-word.length);break
+                case 6:part = String.fromCharCode(parseInt(word[i], 36));break
+                case 7:part = String.fromCharCode(parseInt(word[i], 36)-key[key.length-(i%key.length+1)].charCodeAt(0)-key[i%key.length].charCodeAt(0));break
+                case "testing":
+                    part = String.fromCharCode(word[i].charCodeAt(0)-key[key.length-(i%key.length+1)].charCodeAt(0)-key[i%key.length].charCodeAt(0)-i);
+                break
+            }
+            if(part != undefined){
+                result += part;
+            }else{
+                result += "�";
+            }
         }
     }
-
-    // for (var i=0; i<word.length-key.length; i++){
-    //     part = String.fromCharCode(parseInt(word[i], 36)-key[i%key.length].charCodeAt(0)-key.length-(word.length-key.length));
-    //     result += part;
-    // }
     return result
 }
 </script>

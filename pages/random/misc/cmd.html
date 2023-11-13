@@ -1,0 +1,153 @@
+<style>
+body{
+    background-color: black;
+}
+#container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: fit-content;
+    background-color: white;
+    padding: 4px;
+    text-align: center;
+
+    width: 400px;
+}
+#textBox{
+    /* border-radius: 10px; */
+    padding: 10px;
+    word-break: break-word;
+    background-color: black;
+    text-align: left;
+    color: white;
+    /* min-height: 20px; */
+    height: 200px;
+    overflow-y: scroll;
+    user-select: none;
+}
+#titleBar{
+    user-select: none;
+}
+#icons{
+    position: absolute;
+    /* text-align: right; */
+    font-size: 20px;
+    right: 0px;
+    top: 0px;
+}
+#icon{
+    /* position: absolute; */
+    text-align: center;
+    border-left-style: solid;
+    border-width: 1px;
+    height: 30px;
+    width: 100px;
+    /* margin: -1; */
+    padding: 5px;
+}
+</style>
+<title>CMD</title>
+<div id="container">
+    <div id="titleBar">
+        CMD <span id="text"></span><span id="icons"><b id="icon">-</b><b id="icon">□</b><b id="icon">×</b></span>
+    </div>
+    <div id="textBox">
+        <span id="textInput"></span><span id="cursor"></span>
+    </div>
+    
+</div>
+<script>
+document.getElementById("textInput").innerHTML = "Key:";
+eventPosition = 0;
+document.addEventListener('keydown', (event) => {
+    event.preventDefault();
+    currentText = document.getElementById("textInput").innerHTML;
+    // console.log(event.key);
+    if(event.key == "Control"){
+        console.log("aa");
+    }
+    if(event){
+        if(eventPosition == 0){
+            if(event.key == "Backspace" && currentText.length > 4){
+                document.getElementById("textInput").innerHTML = currentText.slice(0, -1);
+            }
+            if(event.key == "Enter"){
+                decryptKey = currentText.substring(4);
+                console.log(decryptKey);
+                document.getElementById("textInput").innerHTML += "<br>Text:";
+                eventPosition = 1;
+            }
+            if (event.keyCode >= 48 && event.keyCode <= 57 || event.keyCode >= 65 && event.keyCode <= 90 || event.keyCode >= 97 && event.keyCode <= 122){
+                document.getElementById("textInput").innerHTML += event.key;
+            }
+        }else if(eventPosition == 1){
+            currentText = currentText.split('<br>');
+            if(event.key == "Backspace" && currentText[0].length+5 > 4){
+                document.getElementById("textInput").innerHTML = currentText[0]+"<br>"+currentText[1].slice(0, -1);
+            }
+            if(event.key == "Enter"){
+                decryptText = currentText[1].substring(5);
+                console.log(decryptText);
+                eventPosition = 2;
+                document.getElementById("textInput").innerHTML = "";
+                startTyping(decryptWord(decryptKey, decryptText));
+            }
+            if (event.keyCode >= 48 && event.keyCode <= 57 || event.keyCode >= 65 && event.keyCode <= 90 || event.keyCode >= 97 && event.keyCode <= 122){
+                document.getElementById("textInput").innerHTML += event.key;
+            }
+        }else{
+            if(event.key == "Enter"){
+                eventPosition = 0;
+                document.getElementById("textInput").innerHTML = "Key:";
+            }
+        }
+    }
+}, false);
+function getPaste(e){
+    e.preventDefault();
+    // console.log((e.clipboardData || e.clipboardData).getData("text"));
+    document.getElementById("textInput").innerHTML += (e.clipboardData || e.clipboardData).getData("text");
+}
+document.addEventListener("paste", (e) => {getPaste(e)});
+
+function decryptWord(key, word){
+    result = "";
+    word = word.match(/.{1,2}/g);
+    for (var i=0; i<word.length; i++){
+        result += String.fromCharCode(parseInt(word[i], 36)-key[i%key.length].charCodeAt(0)-key.length);
+    }
+    return result
+}
+function startTyping(text) {
+    iteration = 0;
+    function typingLoop(){
+        setTimeout(function() {
+            if(iteration >= text.length){
+                iteration = 0;
+                return
+            }
+            document.getElementById("textInput").innerHTML += text[iteration];
+            iteration++;
+            typingLoop();
+        }, 20);
+    }
+    typingLoop();
+}
+function cursorLoop(){
+    setTimeout(function() {
+        if(document.getElementById("cursor").innerHTML == ""){
+            document.getElementById("cursor").innerHTML = "|";
+        }else{
+            document.getElementById("cursor").innerHTML = "";
+        }
+        
+        cursorLoop();
+    }, 1000);
+}
+cursorLoop();
+
+// setInterval(function() {
+//     startUp();
+// }, 1000);
+</script>
